@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from hubra.core.models.inventory import InventoryItem
+try:
+    from hubra_inventory.models import InventoryItem
+except ImportError:
+    from hubra.core.models.inventory import InventoryItem
 from hubra_guides.models import ItemGuide
 
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- Works with the Inventory plugin. Inventory is no longer built into Hubra;
+  Guides still needs it and now finds it in either place.
+
 ## 1.1.0
 
 Built for Hubra 0.2 (Mantine 9, plugin host API 2). Needs Hubra 0.2 or newer.
