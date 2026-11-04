@@ -10,12 +10,17 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import select
 
 from hubra.api.auth.helpers import get_current_member
-from hubra.api.inventory.services import InventoryService
 from hubra.api.permissions import permission_required
 from hubra.api.utils import log_audit
 from hubra.core.errors import api_error, raise_error
 from hubra.core.extensions import db
-from hubra.core.models.inventory import InventoryItem
+
+try:  # Inventory as a plugin (Hubra after 0.x)
+    from hubra_inventory.models import InventoryItem
+    from hubra_inventory.services import InventoryService
+except ImportError:  # Inventory built into Hubra
+    from hubra.api.inventory.services import InventoryService
+    from hubra.core.models.inventory import InventoryItem
 
 from .models import ItemGuide
 
