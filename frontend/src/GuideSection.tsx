@@ -1,108 +1,125 @@
-import { useState } from 'react'
-import { Button, Textarea, TextInput } from '@mantine/core'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { MarkdownRenderer, useAuth, useT, useToast } from '@hubra/plugin-sdk'
-import { getGuide, saveGuide } from './api'
+import { Button, Text } from '@mantine/core'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { IconBook2, IconExternalLink, IconPlus } from '@tabler/icons-react'
+import { useAuth, useT } from '@hubra/plugin-sdk'
+import { getGuide } from './api'
+import { firstParagraph, headings, readingMinutes } from './toc'
 
-/** Shown in an inventory item's detail panel. */
+/**
+ * Shown in an inventory item's detail panel: a short preview of the guide
+ * and a button to its own page. The guide itself is read and edited there,
+ * not in the panel.
+ */
 export function GuideSection({ itemId }: { itemId: number }) {
   const { t } = useT()
-  const { notify } = useToast()
   const { hasPermission } = useAuth()
-  const queryClient = useQueryClient()
   const canWrite = hasPermission('guides.guides.write')
   const { data: guide } = useQuery({
     queryKey: ['guides', itemId],
     queryFn: () => getGuide(itemId),
   })
-  const [editing, setEditing] = useState(false)
-  const [text, setText] = useState('')
-  const [url, setUrl] = useState('')
-  const [busy, setBusy] = useState(false)
 
-  const startEdit = () => {
-    setText(guide?.guide ?? '')
-    setUrl(guide?.guideUrl ?? '')
-    setEditing(true)
-  }
+  const content = guide?.guide ?? ''
+  const empty = !content && !guide?.guideUrl
+  if (!guide || (empty && !canWrite)) return null
 
-  const save = async () => {
-    setBusy(true)
-    try {
-      await saveGuide(itemId, { guide: text || null, guideUrl: url || null })
-      await queryClient.invalidateQueries({ queryKey: ['guides', itemId] })
-      setEditing(false)
-      notify('success', t('inventory.guide.saved', 'Guide saved'))
-    } catch (err: unknown) {
-      notify(
-        'error',
-        t('inventory.failed', 'Fehler'),
-        err instanceof Error ? err.message : t('common.unknownError'),
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const empty = !guide?.guide && !guide?.guideUrl
-  if (!guide || (empty && !canWrite && !editing)) return null
+  const page = `/app/inventory/${itemId}/guide`
+  const sections = headings(content).length
+  const meta = [
+    sections ? t('inventory.guide.sections', '{{count}} sections', { count: sections }) : null,
+    content
+      ? t('inventory.guide.minutes', '{{count}} min read', { count: readingMinutes(content) })
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const preview = firstParagraph(content)
 
   return (
-    <div style={{ padding: '16px 20px', borderTop: '1px solid #e3eae6' }}>
+    <section style={{ padding: '16px 20px' }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: 8,
+          gap: 8,
+          marginBottom: 10,
         }}
       >
-        <strong style={{ fontSize: 'var(--mantine-font-size-sm)' }}>
+        <div
+          style={{
+            fontSize: 'var(--mantine-font-size-xs)',
+            fontWeight: 600,
+            color: 'var(--hb-text-3)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+          }}
+        >
           {t('inventory.guide.title', 'Guide')}
-        </strong>
-        {canWrite && !editing && (
-          <Button size="xs" variant="subtle" onClick={startEdit}>
-            {empty ? t('inventory.guide.add', 'Add guide') : t('common.edit', 'Edit')}
+        </div>
+        {canWrite && !empty && (
+          <Button component={Link} to={`${page}?edit=1`} size="compact-xs" variant="subtle">
+            {t('common.edit', 'Edit')}
           </Button>
         )}
       </div>
-      {editing ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.currentTarget.value)}
-            autosize
-            minRows={6}
-            placeholder={t(
-              'inventory.guide.placeholder',
-              'Steps, safety rules, what to check after use. Markdown works.',
+      {empty ? (
+        <Button
+          component={Link}
+          to={`${page}?edit=1`}
+          variant="default"
+          fullWidth
+          leftSection={<IconPlus size={16} />}
+        >
+          {t('inventory.guide.add', 'Add guide')}
+        </Button>
+      ) : (
+        <div
+          style={{
+            border: '1px solid var(--hb-border)',
+            borderRadius: 'var(--mantine-radius-md)',
+            padding: 14,
+            background: 'var(--hb-surface-2)',
+          }}
+        >
+          {preview && (
+            <Text
+              fz="sm"
+              lineClamp={3}
+              style={{ color: 'var(--hb-text)', lineHeight: 1.55 }}
+              mb={meta ? 6 : 12}
+            >
+              {preview}
+            </Text>
+          )}
+          {meta && (
+            <Text fz="xs" mb={12} style={{ color: 'var(--hb-text-3)' }}>
+              {meta}
+            </Text>
+          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {content && (
+              <Button component={Link} to={page} size="sm" leftSection={<IconBook2 size={16} />}>
+                {t('inventory.guide.read', 'Read guide')}
+              </Button>
             )}
-          />
-          <TextInput
-            value={url}
-            onChange={(e) => setUrl(e.currentTarget.value)}
-            label={t('inventory.guide.link', 'Link to manual or video')}
-            placeholder="https://"
-          />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button variant="subtle" onClick={() => setEditing(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="default" onClick={save} loading={busy}>
-              {t('common.save')}
-            </Button>
+            {guide.guideUrl && (
+              <Button
+                component="a"
+                href={guide.guideUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="sm"
+                variant="default"
+                leftSection={<IconExternalLink size={16} />}
+              >
+                {t('inventory.guide.openLink', 'Open manual')}
+              </Button>
+            )}
           </div>
         </div>
-      ) : (
-        <>
-          {guide.guide && <MarkdownRenderer content={guide.guide} />}
-          {guide.guideUrl && (
-            <a href={guide.guideUrl} target="_blank" rel="noopener noreferrer">
-              {t('inventory.guide.openLink', 'Open manual')}
-            </a>
-          )}
-        </>
       )}
-    </div>
+    </section>
   )
 }
