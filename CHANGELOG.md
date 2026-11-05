@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Release on a pushed v* tag (works with immutable releases) (#8)
+
 ## 1.3.0
 
 - A guide is now a page of its own, /app/inventory/<id>/guide, instead of
