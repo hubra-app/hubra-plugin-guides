@@ -1,5 +1,16 @@
 # Changelog
 
+
+## Unreleased
+
+- Guides no longer imports Inventory or reads its tables: items come from
+  Inventory's query `inventory.items.get`, and a deleted item's guide is
+  removed when Inventory sends `inventory.item.deleted`. Fixes the CI check
+  against imports from other plugins. Needs Hubra with contracts
+  (hubra-app/hubra#231) and an Inventory that offers them
+  (hubra-app/hubra-plugin-inventory#7).
+- plugin.yaml lists the areas it uses (`uses:`).
+
 ## 1.3.1
 
 - Release on a pushed v* tag (works with immutable releases) (#8)
