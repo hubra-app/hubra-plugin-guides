@@ -1,6 +1,5 @@
 # Changelog
 
-
 ## Unreleased
 
 - Guides no longer imports Inventory or reads its tables: items come from
