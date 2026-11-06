@@ -9,6 +9,8 @@ tags: [inventory]
 package: hubra_guides
 modules: [inventory.guides]
 requires: [inventory]
+depends:
+  inventory: ">=2.0,<3"
 migrations: migrations
 frontend: frontend/dist/plugin.js
 # The areas this plugin extends; Hubra refuses a plugin that touches one it
