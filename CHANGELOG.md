@@ -8,6 +8,13 @@
   qualification its item takes and shows whether the reader holds it.
   New permission `guides.qualifications.manage`; tables `qualification_kinds`,
   `member_qualifications`; column `item_guides.qualification_id`.
+- Guides no longer imports Inventory or reads its tables: items come from
+  Inventory's query `inventory.items.get`, and a deleted item's guide is
+  removed when Inventory sends `inventory.item.deleted`. Fixes the CI check
+  against imports from other plugins. Needs Hubra with contracts
+  (hubra-app/hubra#231) and an Inventory that offers them
+  (hubra-app/hubra-plugin-inventory#7).
+- plugin.yaml lists the areas it uses (`uses:`).
 
 ## 1.3.1
 

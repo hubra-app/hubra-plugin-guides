@@ -11,5 +11,6 @@ modules: [inventory.guides]
 requires: [inventory]
 migrations: migrations
 frontend: frontend/dist/plugin.js
-# What this plugin extends (Hubra docs/plugins.md).
-uses: [routes, tables, jobs, nav, frontend]
+# The areas this plugin extends; Hubra refuses a plugin that touches one it
+# doesn't list. See docs/plugins.md in hubra-app/hubra.
+uses: [routes, tables, events, jobs, nav, frontend, contracts]

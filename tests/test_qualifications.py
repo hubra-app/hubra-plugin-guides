@@ -186,17 +186,19 @@ def test_validation(client, db, club):
 
 
 def test_guide_names_its_qualification(client, db, club, seeded_db):
-    try:
-        from hubra_inventory.models import InventoryItem
-    except ImportError:
-        from hubra.core.models.inventory import InventoryItem
+    from types import SimpleNamespace
+
     from hubra.core.models.member import Member
 
-    item = InventoryItem(name="Laser cutter", category="Tool", status="available")
-    db.session.add(item)
-    db.session.commit()
     kind = _kind(client, name="Laser-Einführung")
     _login(client, "admin@test.ch")
+    # Made through Inventory's API: Guides never imports Inventory.
+    resp = client.post(
+        "/api/v1/inventory/",
+        json={"name": "Laser cutter", "category": "Tool", "status": "available"},
+    )
+    assert resp.status_code == 201, resp.get_json()
+    item = SimpleNamespace(id=resp.get_json()["id"])
     admin_id = seeded_db["admin"].id
     resp = client.put(
         f"/api/v1/guides/{item.id}",
