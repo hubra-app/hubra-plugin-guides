@@ -23,9 +23,9 @@ from datetime import date, datetime, timedelta, timezone
 from flask import jsonify, request
 from sqlalchemy import select
 
-from hubra.api.auth.helpers import get_current_member
-from hubra.api.permissions import permission_required, require_member
-from hubra.api.utils import log_audit
+from hubra.core.auth.helpers import get_current_member
+from hubra.core.permissions import permission_required, require_member
+from hubra.core.utils import log_audit
 from hubra.core.errors import api_error
 from hubra.core.extensions import db
 from hubra.core.models.member import Member
@@ -349,12 +349,12 @@ def delete_qualification(qid: int):
 
 
 def _managers() -> list[Member]:
-    from hubra.api.permissions import _get_member_permission_keys, member_is_admin
+    from hubra.core.permissions import member_has_permission
 
     return [
         m
         for m in db.session.scalars(select(Member).where(Member.archived_at.is_(None)))
-        if member_is_admin(m) or MANAGE in _get_member_permission_keys(m)
+        if member_has_permission(m, MANAGE)
     ]
 
 
