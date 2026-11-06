@@ -27,6 +27,62 @@
         "onlyLink": "This guide is a link to the manual.",
         "none": "There is no guide for this item yet."
       }
+    },
+    "qualifications": {
+      "title": "Qualifications",
+      "desc": "Trainer licences, first aid, machine inductions: who holds which and until when. Holders and managers are reminded before one expires.",
+      "add": "Add qualification",
+      "addKind": "New qualification type",
+      "all": "All",
+      "allKinds": "All types",
+      "state": {
+        "valid": "Valid",
+        "soon": "Expires soon",
+        "expired": "Expired"
+      },
+      "none": "Nothing here",
+      "noneHint": "Add who holds which qualification.",
+      "noKinds": "Start with a qualification type, e.g. Nothelfer or J+S-Leiter.",
+      "months": "{{count}} months",
+      "since": "since {{date}}",
+      "member": "Member",
+      "kind": "Qualification",
+      "obtainedOn": "Obtained on",
+      "expiresOn": "Valid until",
+      "expiresHint": "Empty: from the type's validity",
+      "noExpiryHint": "Empty: does not expire",
+      "note": "Note",
+      "notePlaceholder": "Course, certificate number",
+      "save": "Save",
+      "remove": "Remove",
+      "removeConfirm": "Remove this qualification from the member?",
+      "kindName": "Name",
+      "kindPlaceholder": "Nothelfer",
+      "description": "Description",
+      "validMonths": "Valid for (months)",
+      "validMonthsHint": "Empty: does not expire",
+      "remindDays": "Remind before (days)",
+      "remindDaysHint": "The holder and the managers get a notification this many days before it expires",
+      "deleteKind": "Delete type",
+      "deleteKindConfirm": "Delete {{name}} and every member's entry of it?",
+      "mine": "My qualifications",
+      "until": "Valid until {{date}}",
+      "noExpiry": "Does not expire",
+      "needed": "Qualification it takes",
+      "neededHint": "Shown on the guide, with whether the reader holds it.",
+      "noneNeeded": "None",
+      "takes": "It takes: {{name}}.",
+      "yours": {
+        "valid": "You have it.",
+        "soon": "Yours expires soon.",
+        "expired": "Yours has expired.",
+        "none": "You don't have it yet."
+      }
+    },
+    "shell": {
+      "nav": {
+        "qualifications": "Qualifications"
+      }
     }
   },
   "de-CH": {
@@ -56,6 +112,62 @@
         "seeItem": "Wer eingewiesen ist",
         "onlyLink": "Diese Anleitung ist ein Link zum Handbuch.",
         "none": "Für diesen Gegenstand gibt es noch keine Anleitung."
+      }
+    },
+    "qualifications": {
+      "title": "Qualifikationen",
+      "desc": "Trainerlizenzen, Nothelfer, Maschineneinführungen: wer welche hat und bis wann. Inhaber und Verantwortliche werden erinnert, bevor eine abläuft.",
+      "add": "Qualifikation erfassen",
+      "addKind": "Neue Qualifikationsart",
+      "all": "Alle",
+      "allKinds": "Alle Arten",
+      "state": {
+        "valid": "Gültig",
+        "soon": "Läuft bald ab",
+        "expired": "Abgelaufen"
+      },
+      "none": "Nichts gefunden",
+      "noneHint": "Erfasse, wer welche Qualifikation hat.",
+      "noKinds": "Beginne mit einer Qualifikationsart, z. B. Nothelfer oder J+S-Leiter.",
+      "months": "{{count}} Monate",
+      "since": "seit {{date}}",
+      "member": "Mitglied",
+      "kind": "Qualifikation",
+      "obtainedOn": "Erworben am",
+      "expiresOn": "Gültig bis",
+      "expiresHint": "Leer: gemäss Gültigkeit der Art",
+      "noExpiryHint": "Leer: läuft nicht ab",
+      "note": "Notiz",
+      "notePlaceholder": "Kurs, Ausweisnummer",
+      "save": "Speichern",
+      "remove": "Entfernen",
+      "removeConfirm": "Diese Qualifikation beim Mitglied entfernen?",
+      "kindName": "Name",
+      "kindPlaceholder": "Nothelfer",
+      "description": "Beschreibung",
+      "validMonths": "Gültig für (Monate)",
+      "validMonthsHint": "Leer: läuft nicht ab",
+      "remindDays": "Erinnern vorher (Tage)",
+      "remindDaysHint": "Inhaber und Verantwortliche bekommen so viele Tage vor Ablauf eine Benachrichtigung",
+      "deleteKind": "Art löschen",
+      "deleteKindConfirm": "{{name}} und alle Einträge der Mitglieder löschen?",
+      "mine": "Meine Qualifikationen",
+      "until": "Gültig bis {{date}}",
+      "noExpiry": "Läuft nicht ab",
+      "needed": "Nötige Qualifikation",
+      "neededHint": "Wird bei der Anleitung angezeigt, mit dem Hinweis, ob die Leserin oder der Leser sie hat.",
+      "noneNeeded": "Keine",
+      "takes": "Nötig: {{name}}.",
+      "yours": {
+        "valid": "Du hast sie.",
+        "soon": "Deine läuft bald ab.",
+        "expired": "Deine ist abgelaufen.",
+        "none": "Du hast sie noch nicht."
+      }
+    },
+    "shell": {
+      "nav": {
+        "qualifications": "Qualifikationen"
       }
     }
   }

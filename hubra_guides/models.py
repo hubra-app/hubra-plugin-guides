@@ -1,8 +1,9 @@
-"""ItemGuide: the usage guide of one inventory item (tenant schema)."""
+"""ItemGuide: the usage guide of one inventory item, and qualifications
+(trainer licences, first aid, machine inductions) with their expiry."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -22,9 +23,75 @@ class ItemGuide(db.Model):
     # Markdown and/or a link to a manual or video.
     guide: Mapped[str | None] = mapped_column(Text, nullable=True)
     guide_url: Mapped[str | None] = mapped_column(db.String(500), nullable=True)
+    # The qualification it takes to use the item (e.g. the laser induction).
+    qualification_id: Mapped[int | None] = mapped_column(
+        db.Integer,
+        ForeignKey("qualification_kinds.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+class QualificationKind(db.Model):
+    """A qualification the club tracks: "J+S Leiter", "Nothelfer", "Laser"."""
+
+    __tablename__ = "qualification_kinds"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(db.String(120), nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # How long it is valid; None: it does not expire.
+    valid_months: Mapped[int | None] = mapped_column(db.Integer, nullable=True)
+    # Days before expiry the holder and the managers are reminded.
+    remind_days: Mapped[int] = mapped_column(db.Integer, default=30, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+class MemberQualification(db.Model):
+    """One member holds one qualification, from a day, maybe until a day.
+
+    One row per member and kind: a renewal moves the dates.
+    """
+
+    __tablename__ = "member_qualifications"
+    __table_args__ = (
+        db.UniqueConstraint("member_id", "kind_id", name="uq_member_qualification"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    member_id: Mapped[int] = mapped_column(
+        db.Integer,
+        ForeignKey("members.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    kind_id: Mapped[int] = mapped_column(
+        db.Integer,
+        ForeignKey("qualification_kinds.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    obtained_on: Mapped[date] = mapped_column(db.Date, nullable=False)
+    expires_on: Mapped[date | None] = mapped_column(db.Date, nullable=True)
+    note: Mapped[str | None] = mapped_column(db.String(500), nullable=True)
+    # Set when the reminder went out; cleared by a renewal.
+    reminded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_by: Mapped[int | None] = mapped_column(
+        db.Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )

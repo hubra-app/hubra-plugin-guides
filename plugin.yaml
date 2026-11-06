@@ -1,8 +1,8 @@
 id: guides
 name: Guides
-version: "1.3.1"
+version: "1.4.0"
 hubra: ">=0.2,<1"
-description: "A usage guide per machine or tool, in Markdown or as a link to a manual or video, on a page of its own, linked from the inventory item."
+description: "A usage guide per machine or tool, in Markdown or as a link to a manual or video, on a page of its own, linked from the inventory item. Qualifications (licences, first aid, machine inductions) with expiry and reminders."
 author: Hubra
 homepage: https://github.com/hubra-app/hubra-plugin-guides
 tags: [inventory]
@@ -13,4 +13,4 @@ migrations: migrations
 frontend: frontend/dist/plugin.js
 # The areas this plugin extends; Hubra refuses a plugin that touches one it
 # doesn't list. See docs/plugins.md in hubra-app/hubra.
-uses: [routes, tables, events, frontend, contracts]
+uses: [routes, tables, events, jobs, nav, frontend, contracts]

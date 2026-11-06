@@ -4,7 +4,23 @@
 
 A plugin for [Hubra](https://hubra.club). A usage guide per machine or tool, in Markdown or as a link to a manual or video, shown on the inventory item.
 
-**Version** 1.3.1 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides`
+**Version** 1.4.0 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides`
+
+## Qualifications
+
+Trainer licences, first aid, machine inductions: *Qualifications* (permission
+**Manage qualifications**, `guides.qualifications.manage`) lists who holds
+which and until when, soonest expiry first, with filters for "expires soon"
+and "expired".
+
+- A qualification type has a validity in months (empty: it does not expire)
+  and how many days before expiry to remind.
+- Entering one again for the same member renews it.
+- A daily job notifies the holder and everyone who manages qualifications once
+  before it expires; a renewal arms the reminder again.
+- Members see their own under *My qualifications* on their account page.
+- A guide can name the qualification its item takes; the guide then shows it,
+  and whether the reader holds it.
 
 ## Install
 

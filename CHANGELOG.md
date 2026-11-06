@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
 
+- Qualifications with expiry: types with a validity and reminder days, who
+  holds which until when, renewals, a daily reminder to the holder and the
+  managers, "My qualifications" on the account page. A guide can name the
+  qualification its item takes and shows whether the reader holds it.
+  New permission `guides.qualifications.manage`; tables `qualification_kinds`,
+  `member_qualifications`; column `item_guides.qualification_id`.
 - Guides no longer imports Inventory or reads its tables: items come from
   Inventory's query `inventory.items.get`, and a deleted item's guide is
   removed when Inventory sends `inventory.item.deleted`. Fixes the CI check

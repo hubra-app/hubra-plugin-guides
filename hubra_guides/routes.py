@@ -19,7 +19,7 @@ from hubra.core.extensions import db
 
 from hubra.core.contracts import SYSTEM, ActionFailed, ActionUnavailable, query
 
-from .models import ItemGuide
+from .models import ItemGuide, QualificationKind
 
 guides_bp = Blueprint("guides_bp", __name__)
 
@@ -49,6 +49,24 @@ def _to_dict(item: dict, guide: ItemGuide | None) -> dict:
         "guide": (guide.guide if guide else None) or "",
         "guideUrl": guide.guide_url if guide else None,
         "instructionRequired": bool(item.get("instruction_required")),
+        "qualification": _qualification(guide),
+    }
+
+
+def _qualification(guide: ItemGuide | None) -> dict | None:
+    """The qualification the item needs, and whether the viewer holds it."""
+    if guide is None or not guide.qualification_id:
+        return None
+    kind = db.session.get(QualificationKind, guide.qualification_id)
+    if kind is None:
+        return None
+    from .qualifications import holds
+
+    member = get_current_member()
+    return {
+        "id": kind.id,
+        "name": kind.name,
+        "mine": holds(member.id, kind.id) if member else None,
     }
 
 
@@ -98,6 +116,15 @@ def save_guide(item_id: int):
             )
         if len(url) > 500:
             return api_error("VALIDATION_ERROR", "guide_url is too long", 400)
+    qid = body.get("qualification_id")
+    if qid is not None and (
+        not isinstance(qid, int)
+        or isinstance(qid, bool)
+        or db.session.get(QualificationKind, qid) is None
+    ):
+        return api_error(
+            "VALIDATION_ERROR", "qualification_id must be a qualification", 400
+        )
     item = _live_item(item_id)
     row = db.session.get(ItemGuide, item["id"])
     if row is None:
@@ -107,6 +134,8 @@ def save_guide(item_id: int):
         row.guide = (guide or "").strip() or None
     if "guide_url" in body:
         row.guide_url = (url or "").strip() or None
+    if "qualification_id" in body:
+        row.qualification_id = qid
     log_audit(
         get_current_member().id,
         "update_guide",
@@ -116,3 +145,6 @@ def save_guide(item_id: int):
     )
     db.session.commit()
     return jsonify(_to_dict(item, row)), 200
+
+
+from . import qualifications  # noqa: E402,F401  (registers its routes)

@@ -5,6 +5,7 @@ import {
   Collapse,
   Paper,
   SegmentedControl,
+  Select,
   Skeleton,
   Text,
   Textarea,
@@ -16,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   IconArrowLeft,
+  IconCertificate,
   IconChevronDown,
   IconExternalLink,
   IconInfoCircle,
@@ -23,7 +25,7 @@ import {
   IconPencil,
 } from '@tabler/icons-react'
 import { MarkdownRenderer, PageHead, useAuth, useT, useToast } from '@hubra/plugin-sdk'
-import { getGuide, saveGuide } from './api'
+import { getGuide, listKinds, saveGuide } from './api'
 import { headings, readingMinutes, type TocEntry } from './toc'
 
 /** Puts the anchors from `toc` on the rendered h1–h3 headings, in order. */
@@ -146,6 +148,8 @@ export function GuidePage() {
   const editing = canWrite && params.get('edit') === '1'
   const [text, setText] = useState('')
   const [url, setUrl] = useState('')
+  const [qualificationId, setQualificationId] = useState<string | null>(null)
+  const kinds = useQuery({ queryKey: ['guides', 'kinds'], queryFn: listKinds, enabled: editing })
   const [mode, setMode] = useState<'write' | 'preview'>('write')
   const [busy, setBusy] = useState(false)
   const [tocOpen, setTocOpen] = useState(false)
@@ -154,6 +158,7 @@ export function GuidePage() {
     if (editing && guide) {
       setText(guide.guide ?? '')
       setUrl(guide.guideUrl ?? '')
+      setQualificationId(guide.qualification ? String(guide.qualification.id) : null)
       setMode('write')
     }
   }, [editing, guide])
@@ -195,7 +200,11 @@ export function GuidePage() {
   const save = async () => {
     setBusy(true)
     try {
-      await saveGuide(itemId, { guide: text.trim() ? text : null, guideUrl: url.trim() || null })
+      await saveGuide(itemId, {
+        guide: text.trim() ? text : null,
+        guideUrl: url.trim() || null,
+        qualificationId: qualificationId ? Number(qualificationId) : null,
+      })
       await queryClient.invalidateQueries({ queryKey: ['guides', itemId] })
       setEditing(false)
       notify('success', t('inventory.guide.saved', 'Guide saved'))
@@ -364,6 +373,16 @@ export function GuidePage() {
             label={t('inventory.guide.link', 'Link to manual or video')}
             placeholder="https://"
           />
+          <Select
+            mt="md"
+            clearable
+            value={qualificationId}
+            onChange={setQualificationId}
+            data={(kinds.data ?? []).map((k) => ({ value: String(k.id), label: k.name }))}
+            label={t('qualifications.needed', 'Qualification it takes')}
+            description={t('qualifications.neededHint', 'Shown on the guide, with whether the reader holds it.')}
+            placeholder={t('qualifications.noneNeeded', 'None')}
+          />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 24 }}>
             <Button variant="subtle" onClick={() => setEditing(false)}>
               {t('common.cancel')}
@@ -398,6 +417,26 @@ export function GuidePage() {
     </div>
   )
 
+  const q = guide.qualification
+  const qualificationNote = q && (
+    <div
+      style={{
+        display: 'flex',
+        gap: 8,
+        alignItems: 'flex-start',
+        fontSize: 'var(--mantine-font-size-sm)',
+        color: q.mine === 'valid' ? 'var(--hb-text-2)' : 'var(--mantine-color-red-7)',
+        lineHeight: 1.45,
+      }}
+    >
+      <IconCertificate size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+      <span>
+        {t('qualifications.takes', 'It takes: {{name}}.', { name: q.name })}{' '}
+        {t(`qualifications.yours.${q.mine ?? 'none'}`)}
+      </span>
+    </div>
+  )
+
   const article = (
     <Paper withBorder p={{ base: 'md', sm: 'xl' }} style={{ minWidth: 0 }}>
       {content ? (
@@ -427,6 +466,7 @@ export function GuidePage() {
       <div>
         {head}
         {instructionNote && <div style={{ marginBottom: 16 }}>{instructionNote}</div>}
+        {qualificationNote && <div style={{ marginBottom: 16 }}>{qualificationNote}</div>}
         {toc.length > 1 && (
           <Paper withBorder mb="md" style={{ overflow: 'hidden' }}>
             <UnstyledButton
@@ -485,6 +525,7 @@ export function GuidePage() {
             </div>
           )}
           {instructionNote}
+          {qualificationNote}
           <div>
             <Button
               variant="subtle"
