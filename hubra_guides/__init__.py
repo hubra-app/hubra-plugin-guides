@@ -17,4 +17,7 @@ module = Module(
     ),
     # Shown in the inventory item panel; no nav entry.
     tables=("item_guides",),
+    # Items come from Inventory's contracts, never its tables or code.
+    consumes={"inventory.items.get": ">=1,<2", "inventory.item.deleted": ">=1,<2"},
+    events={"inventory.item.deleted": "hubra_guides.hooks:on_item_deleted"},
 )
