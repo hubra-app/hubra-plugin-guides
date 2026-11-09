@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Text
+from sqlalchemy import DateTime, ForeignKey, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from hubra.core.extensions import db
@@ -49,6 +49,11 @@ class QualificationKind(db.Model):
     valid_months: Mapped[int | None] = mapped_column(db.Integer, nullable=True)
     # Days before expiry the holder and the managers are reminded.
     remind_days: Mapped[int] = mapped_column(db.Integer, default=30, nullable=False)
+    # Members add it to themselves ("Elektriker", "Grafik"), and every member
+    # can see who has it. Never what an item takes: nobody checks it.
+    self_service: Mapped[bool] = mapped_column(
+        db.Boolean, default=False, server_default=false(), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

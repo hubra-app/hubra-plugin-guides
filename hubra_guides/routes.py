@@ -117,13 +117,21 @@ def save_guide(item_id: int):
         if len(url) > 500:
             return api_error("VALIDATION_ERROR", "guide_url is too long", 400)
     qid = body.get("qualification_id")
-    if qid is not None and (
-        not isinstance(qid, int)
-        or isinstance(qid, bool)
-        or db.session.get(QualificationKind, qid) is None
-    ):
+    kind = (
+        db.session.get(QualificationKind, qid)
+        if isinstance(qid, int) and not isinstance(qid, bool)
+        else None
+    )
+    if qid is not None and kind is None:
         return api_error(
             "VALIDATION_ERROR", "qualification_id must be a qualification", 400
+        )
+    # Members add self-service ones to themselves: nothing anyone checked.
+    if kind is not None and kind.self_service:
+        return api_error(
+            "VALIDATION_ERROR",
+            "qualification_id must be one the club manages, not a self-service one",
+            400,
         )
     item = _live_item(item_id)
     row = db.session.get(ItemGuide, item["id"])

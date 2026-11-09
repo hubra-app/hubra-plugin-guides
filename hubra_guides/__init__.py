@@ -8,7 +8,7 @@ module = Module(
     name="Guides",
     description=(
         "Usage guides for machines and tools (Markdown or a Google Drive link), "
-        "and qualifications with expiry and reminders"
+        "qualifications with expiry and reminders, and who can do what"
     ),
     default_enabled=False,
     depends_on=("inventory",),
@@ -21,6 +21,14 @@ module = Module(
     ),
     # Guides show in the inventory item panel; qualifications have a page.
     nav=(
+        # Who can do what: every member, next to the other member pages.
+        NavItem(
+            "/app/skills",
+            "shell.nav.canDo",
+            "tools",
+            section="more",
+            order=30,
+        ),
         NavItem(
             "/app/inventory/qualifications",
             "shell.nav.qualifications",

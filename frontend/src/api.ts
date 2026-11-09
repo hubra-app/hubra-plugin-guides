@@ -35,6 +35,8 @@ export interface QualificationKind {
   description: string | null
   validMonths: number | null
   remindDays: number
+  /** Members add it to themselves ("Elektriker"); everyone sees who has it. */
+  selfService: boolean
 }
 
 export interface Qualification {
@@ -43,6 +45,7 @@ export interface Qualification {
   memberName: string | null
   kindId: number
   kindName: string
+  selfService: boolean
   obtainedOn: string
   expiresOn: string | null
   note: string | null
@@ -54,6 +57,7 @@ export interface KindInput {
   description: string | null
   validMonths: number | null
   remindDays: number
+  selfService: boolean
 }
 
 export interface QualificationInput {
@@ -78,3 +82,22 @@ export const addQualification = (input: QualificationInput) =>
 export const updateQualification = (id: number, input: QualificationInput) =>
   apiFetch<Qualification>(`${Q}/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
 export const deleteQualification = (id: number) => apiFetch<void>(`${Q}/${id}`, { method: 'DELETE' })
+
+// ── What members can do (self-service qualifications) ──────────────────────
+
+export interface CanDo {
+  id: number
+  memberId: number
+  memberName: string | null
+  kindId: number
+  kindName: string
+  note: string | null
+  mine: boolean
+}
+
+export const listCanDo = (q: string) => apiFetch<CanDo[]>(`${Q}/directory?${new URLSearchParams({ q })}`)
+export const addMine = (input: { kindId?: number; name?: string; note: string | null }) =>
+  apiFetch<Qualification>(`${Q}/mine`, { method: 'POST', body: JSON.stringify(input) })
+export const updateMine = (id: number, note: string | null) =>
+  apiFetch<Qualification>(`${Q}/mine/${id}`, { method: 'PATCH', body: JSON.stringify({ note }) })
+export const deleteMine = (id: number) => apiFetch<void>(`${Q}/mine/${id}`, { method: 'DELETE' })

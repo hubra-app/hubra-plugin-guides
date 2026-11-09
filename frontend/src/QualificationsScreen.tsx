@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Badge, Button, Group, Modal, NumberInput, Paper, Select, Stack, Text, TextInput, Textarea } from '@mantine/core'
+import { Badge, Button, Group, Modal, NumberInput, Paper, Select, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core'
 import { IconCertificate, IconPencil, IconPlus } from '@tabler/icons-react'
 import {
   ConfirmModal,
@@ -98,6 +98,7 @@ export function QualificationsScreen() {
               onClick={() => setEditKind(k)}
             >
               {k.name}
+              {k.selfService ? ` · ${t('qualifications.selfServiceShort')}` : ''}
               {k.validMonths ? ` · ${t('qualifications.months', { count: k.validMonths })}` : ''}
             </Badge>
           ))}
@@ -255,6 +256,7 @@ function KindForm({ kind, onClose }: { kind: QualificationKind | null; onClose: 
     description: kind?.description ?? null,
     validMonths: kind?.validMonths ?? null,
     remindDays: kind?.remindDays ?? 30,
+    selfService: kind?.selfService ?? false,
   })
   const [busy, setBusy] = useState(false)
   const [asking, setAsking] = useState(false)
@@ -297,6 +299,12 @@ function KindForm({ kind, onClose }: { kind: QualificationKind | null; onClose: 
           allowDecimal={false}
           value={form.remindDays}
           onChange={(v) => setForm({ ...form, remindDays: typeof v === 'number' ? v : 30 })}
+        />
+        <Switch
+          label={t('qualifications.selfService')}
+          description={t('qualifications.selfServiceHint')}
+          checked={form.selfService}
+          onChange={(e) => setForm({ ...form, selfService: e.currentTarget.checked })}
         />
         <Group justify="space-between" mt="sm">
           {kind ? (

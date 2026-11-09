@@ -4,7 +4,7 @@
 
 A plugin for [Hubra](https://hubra.club). A usage guide per machine or tool, in Markdown or as a link to a manual or video, shown on the inventory item.
 
-**Version** 1.4.0 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides`
+**Version** 1.5.0 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides`
 
 ## Qualifications
 
@@ -21,6 +21,20 @@ and "expired".
 - Members see their own under *My qualifications* on their account page.
 - A guide can name the qualification its item takes; the guide then shows it,
   and whether the reader holds it.
+
+## Who can do what
+
+What members can do for the club (electrician, graphic design, first aid
+outside the club's own courses) are qualifications too: types switched to
+"Members add it themselves". *Wer kann was* (`/app/skills`, every member)
+lists who has which, with a search; members add their own there or on their
+account page, picking a type or typing a new one, and change or remove only
+their own. Managers still see and edit everything under *Qualifications*.
+A self-service type can never be what an item takes, since nobody checked it.
+
+This replaces the "Kann" entries of the Community plugin's skills directory:
+updating to 1.5.0 copies them here once (when that table exists; Guides does
+not need Community).
 
 ## Install
 

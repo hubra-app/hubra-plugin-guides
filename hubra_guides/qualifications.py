@@ -10,8 +10,18 @@ POST   /qualifications                {memberId, kindId, obtainedOn, expiresOn?,
 PATCH  /qualifications/<id>
 DELETE /qualifications/<id>
 GET    /qualifications/mine           the signed-in member's own
+POST   /qualifications/mine           {kindId | name, note?} add what I can do
+PATCH  /qualifications/mine/<id>      {note}
+DELETE /qualifications/mine/<id>
+GET    /qualifications/directory      ?q=&kindId= who can do what (every member)
 
-Everything but /mine and the kinds list needs guides.qualifications.manage.
+Self-service kinds (``selfService``) are what members can do: "Elektriker",
+"Grafik". Members add and remove those on themselves, naming a new one adds
+it, and every member can search who has one. The club's own qualifications
+(licences, inductions) stay with the managers: only they add, change and
+see those for others, and only those can be what an item takes.
+
+Everything else needs guides.qualifications.manage.
 A daily job reminds the holder and the managers before one expires.
 """
 
@@ -30,7 +40,7 @@ from hubra.core.errors import api_error
 from hubra.core.extensions import db
 from hubra.core.models.member import Member
 
-from .models import MemberQualification, QualificationKind
+from .models import ItemGuide, MemberQualification, QualificationKind
 from .routes import guides_bp
 
 LABEL = "Manage qualifications"
@@ -75,6 +85,7 @@ def _kind_out(k: QualificationKind) -> dict:
         "description": k.description,
         "validMonths": k.valid_months,
         "remindDays": k.remind_days,
+        "selfService": k.self_service,
     }
 
 
@@ -85,6 +96,7 @@ def _out(q: MemberQualification, kind: QualificationKind, name: str | None) -> d
         "memberName": name,
         "kindId": q.kind_id,
         "kindName": kind.name,
+        "selfService": kind.self_service,
         "obtainedOn": q.obtained_on.isoformat(),
         "expiresOn": q.expires_on.isoformat() if q.expires_on else None,
         "note": q.note,
@@ -126,6 +138,17 @@ def _read_kind(k: QualificationKind, data: dict) -> None:
         k.valid_months = _int(data, "validMonths", 1, 600)
     if "remindDays" in data:
         k.remind_days = _int(data, "remindDays", 0, 365, required=True)
+    if "selfService" in data:
+        value = data.get("selfService")
+        if not isinstance(value, bool):
+            raise ValueError("selfService must be true or false")
+        if value and k.id and db.session.scalar(
+            select(ItemGuide.item_id).where(ItemGuide.qualification_id == k.id)
+        ):
+            raise ValueError(
+                "an item takes this qualification, so members cannot add it themselves"
+            )
+        k.self_service = value
 
 
 def _bad(exc: ValueError):
@@ -147,7 +170,7 @@ def list_kinds():
 @guides_bp.post("/qualifications/kinds")
 @permission_required("qualifications", "manage", LABEL)
 def create_kind():
-    k = QualificationKind(name=None, remind_days=30)
+    k = QualificationKind(name=None, remind_days=30, self_service=False)
     try:
         _read_kind(k, request.get_json(silent=True) or {})
     except ValueError as exc:
@@ -343,6 +366,188 @@ def delete_qualification(qid: int):
     db.session.delete(q)
     db.session.commit()
     return "", 204
+
+
+# ── What members can do (self-service) ──────────────────────────────────────
+
+MAX_OWN = 50
+
+
+def _note(data: dict) -> str | None:
+    note = data.get("note")
+    if note is not None and (not isinstance(note, str) or len(note) > 500):
+        raise ValueError("note must be text up to 500 characters")
+    return (note or "").strip() or None
+
+
+def _self_kind(data: dict) -> QualificationKind:
+    """The self-service kind by id, or by name (added when new)."""
+    if data.get("kindId") is not None:
+        kind = db.session.get(
+            QualificationKind, _int(data, "kindId", 1, 2**31 - 1, required=True)
+        )
+        if kind is None:
+            raise LookupError("No such qualification.")
+    else:
+        name = data.get("name")
+        if not isinstance(name, str) or not name.strip() or len(name) > 120:
+            raise ValueError("kindId or name (up to 120 characters) is required")
+        name = " ".join(name.split())
+        kind = next(
+            (
+                k
+                for k in db.session.scalars(select(QualificationKind))
+                if k.name.casefold() == name.casefold()
+            ),
+            None,
+        )
+        if kind is None:
+            kind = QualificationKind(
+                name=name, remind_days=30, self_service=True, valid_months=None
+            )
+            db.session.add(kind)
+            db.session.flush()
+            return kind
+    if not kind.self_service:
+        raise PermissionError(
+            f"{kind.name} is confirmed by the club; ask whoever manages qualifications."
+        )
+    return kind
+
+
+@guides_bp.post("/qualifications/mine")
+@require_member
+def add_mine():
+    member = get_current_member()
+    data = request.get_json(silent=True) or {}
+    try:
+        note = _note(data)
+        kind = _self_kind(data)
+    except ValueError as exc:
+        db.session.rollback()
+        return _bad(exc)
+    except LookupError as exc:
+        db.session.rollback()
+        return api_error("NOT_FOUND", str(exc), 404)
+    except PermissionError as exc:
+        db.session.rollback()
+        return api_error("FORBIDDEN", str(exc), 403)
+    q = db.session.scalar(
+        select(MemberQualification)
+        .where(MemberQualification.member_id == member.id)
+        .where(MemberQualification.kind_id == kind.id)
+    )
+    if q is not None:
+        db.session.rollback()
+        return api_error("DUPLICATE", "You have this one already.", 409)
+    own = db.session.scalar(
+        select(db.func.count())
+        .select_from(MemberQualification)
+        .join(QualificationKind, QualificationKind.id == MemberQualification.kind_id)
+        .where(MemberQualification.member_id == member.id)
+        .where(QualificationKind.self_service.is_(True))
+    )
+    if own >= MAX_OWN:
+        db.session.rollback()
+        return _bad(ValueError(f"at most {MAX_OWN} entries per member"))
+    q = MemberQualification(
+        member_id=member.id,
+        kind_id=kind.id,
+        obtained_on=date.today(),
+        note=note,
+        created_by=member.id,
+        updated_at=_now(),
+    )
+    db.session.add(q)
+    db.session.commit()
+    return jsonify(_out(q, kind, member.name)), 201
+
+
+def _own(qid: int):
+    """The signed-in member's own entry of a self-service kind."""
+    q = db.session.get(MemberQualification, qid)
+    member = get_current_member()
+    if q is None or q.member_id != member.id:
+        return None, None, api_error("NOT_FOUND", "No such qualification.", 404)
+    kind = db.session.get(QualificationKind, q.kind_id)
+    if not kind.self_service:
+        return None, None, api_error(
+            "FORBIDDEN", "The club manages this qualification.", 403
+        )
+    return q, kind, None
+
+
+@guides_bp.patch("/qualifications/mine/<int:qid>")
+@require_member
+def update_mine(qid: int):
+    q, kind, err = _own(qid)
+    if err:
+        return err
+    try:
+        q.note = _note(request.get_json(silent=True) or {})
+    except ValueError as exc:
+        return _bad(exc)
+    q.updated_at = _now()
+    db.session.commit()
+    return jsonify(_out(q, kind, get_current_member().name))
+
+
+@guides_bp.delete("/qualifications/mine/<int:qid>")
+@require_member
+def delete_mine(qid: int):
+    q, _kind, err = _own(qid)
+    if err:
+        return err
+    db.session.delete(q)
+    db.session.commit()
+    return "", 204
+
+
+@guides_bp.get("/qualifications/directory")
+@require_member
+def directory():
+    """Who can do what: every active member's self-service entries."""
+    me = get_current_member()
+    query = (
+        select(MemberQualification, QualificationKind, Member)
+        .join(QualificationKind, QualificationKind.id == MemberQualification.kind_id)
+        .join(Member, Member.id == MemberQualification.member_id)
+        .where(QualificationKind.self_service.is_(True))
+        .where(Member.status == "active")
+        .where(Member.archived_at.is_(None))
+        .where(Member.deleted_at.is_(None))
+        .order_by(db.func.lower(QualificationKind.name), MemberQualification.id)
+    )
+    kind_id = request.args.get("kindId", type=int)
+    if kind_id:
+        query = query.where(MemberQualification.kind_id == kind_id)
+    text = (request.args.get("q") or "").strip()[:80]
+    if text:
+        like = f"%{text.lower()}%"
+        query = query.where(
+            db.or_(
+                db.func.lower(QualificationKind.name).like(like),
+                db.func.lower(db.func.coalesce(MemberQualification.note, "")).like(
+                    like
+                ),
+            )
+        )
+    rows = db.session.execute(query.limit(1000)).all()
+    rows.sort(key=lambda r: (r[1].name.casefold(), (r[2].name or "").casefold()))
+    return jsonify(
+        [
+            {
+                "id": q.id,
+                "memberId": m.id,
+                "memberName": m.name,
+                "kindId": k.id,
+                "kindName": k.name,
+                "note": q.note,
+                "mine": m.id == me.id,
+            }
+            for q, k, m in rows
+        ]
+    )
 
 
 # ── Reminders ────────────────────────────────────────────────────────────────
