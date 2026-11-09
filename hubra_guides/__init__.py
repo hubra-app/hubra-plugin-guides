@@ -1,29 +1,17 @@
-"""Qualifications: licences, first aid, inductions with their expiry and
-reminders, and who can do what (self-service entries other members confirm).
+"""Guides: a how-to per machine or tool, in Markdown or as a Drive link,
+and qualifications (licences, first aid, inductions) with their expiry."""
 
-Up to 1.5 this plugin was "Guides", an add-on of Inventory with a usage
-guide per item. The guides moved into Inventory (2.4); this plugin no
-longer needs Inventory. Its module was ``inventory.guides`` and is
-``qualifications`` now (``renamed_from`` keeps each club's switch); the
-blueprint keeps its name, so the permission keys stay ``guides.*``.
-Inventory asks which qualification a member holds through the queries in
-contracts.py.
-"""
-
-from hubra.core.contracts import query_contract
 from hubra.core.modules import Blueprint, Module, NavItem, Schedule
 
-_C = "hubra_guides.contracts"
-
 module = Module(
-    code="qualifications",
-    renamed_from=("inventory.guides",),
-    name="Qualifications",
+    code="inventory.guides",
+    name="Guides",
     description=(
-        "Licences, first aid and inductions with expiry and reminders, "
-        "and who can do what"
+        "Usage guides for machines and tools (Markdown or a Google Drive link), "
+        "qualifications with expiry and reminders, and who can do what"
     ),
     default_enabled=False,
+    depends_on=("inventory",),
     blueprints=(
         Blueprint(
             "hubra_guides.routes",
@@ -31,6 +19,7 @@ module = Module(
             "/api/v1/guides",
         ),
     ),
+    # Guides show in the inventory item panel; qualifications have a page.
     nav=(
         # Who can do what: every member, next to the other member pages.
         NavItem(
@@ -41,7 +30,7 @@ module = Module(
             order=30,
         ),
         NavItem(
-            "/app/qualifications",
+            "/app/inventory/qualifications",
             "shell.nav.qualifications",
             "certificate",
             order=34,
@@ -56,23 +45,8 @@ module = Module(
             86400.0,
         ),
     ),
-    # item_guides is the guides' old table: Inventory 2.4 copies it and it
-    # is dropped in a later release (a rollback to 1.5 still needs it).
     tables=("item_guides", "qualification_kinds", "member_qualifications"),
-    provides=(
-        query_contract(
-            "qualifications.kinds.list",
-            f"{_C}:list_kinds",
-            input=f"{_C}:KindsIn",
-            output=f"{_C}:Kind",
-            description="The club's own qualification kinds (not self-service ones)",
-        ),
-        query_contract(
-            "qualifications.member.holds",
-            f"{_C}:member_holds",
-            input=f"{_C}:HoldsIn",
-            output=f"{_C}:Held",
-            description="Whether a member holds these qualifications, and until when",
-        ),
-    ),
+    # Items come from Inventory's contracts, never its tables or code.
+    consumes={"inventory.items.get": ">=1,<2", "inventory.item.deleted": ">=1,<2"},
+    events={"inventory.item.deleted": "hubra_guides.hooks:on_item_deleted"},
 )

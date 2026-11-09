@@ -1,23 +1,5 @@
 # Changelog
 
-## 2.0.0
-
-Guides is now **Qualifications**: the plugin keeps who holds which
-qualification and *Wer kann was*, and the usage guides per inventory item
-moved into the Inventory plugin (2.4.0). Update both together.
-
-- No longer needs Inventory. The plugin id stays `guides`, so nothing has to
-  be reinstalled, and the permission keys (`guides.*`) stay the same.
-- The module is now `qualifications` (was `inventory.guides`). Clubs that had
-  it switched on keep it on: the module declares `renamed_from`, which needs
-  the Hubra release with hubra-app/hubra#278.
-- The management page is now `/app/qualifications`; the old
-  `/app/inventory/qualifications` still opens it.
-- New query contracts `qualifications.kinds.list` and
-  `qualifications.member.holds` for other plugins.
-- The `item_guides` table stays for now, so Inventory 2.4.0 can copy the
-  guides; a later release drops it.
-
 ## 1.5.1
 
 1.5.0 was tagged but couldn't be signed, so it was never released. 1.5.1 is the same plugin, signed. What 1.5.0 brings:

@@ -7,7 +7,7 @@ from hubra.core.tasks import celery_app
 
 
 @celery_app.task(name="hubra_guides.tasks.remind_qualifications")
-@per_tenant_job("qualifications")
+@per_tenant_job("inventory.guides")
 def remind_qualifications() -> int:
     from hubra.core.extensions import db
 

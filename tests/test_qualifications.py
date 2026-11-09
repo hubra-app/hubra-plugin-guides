@@ -15,7 +15,7 @@ Q = "/api/v1/guides/qualifications"
 @pytest.fixture
 def club(client, app, db, seeded_db):
     """Kim manages qualifications; Max holds them."""
-    set_modules(True, "qualifications")
+    set_modules(True, "inventory", "inventory.guides")
     app.test_cli_runner().invoke(args=["sync-permissions"])
     tier = seeded_db["tier"]
     kim = _make_role_and_member(
@@ -185,39 +185,45 @@ def test_validation(client, db, club):
     )
 
 
-def test_queries_offer_the_clubs_own_kinds_and_who_holds_them(client, db, club):
-    """What Inventory asks (contracts.py): never the self-service kinds."""
-    from hubra.core.contracts import SYSTEM, query
+def test_guide_names_its_qualification(client, db, club, seeded_db):
+    from types import SimpleNamespace
 
-    first_aid = _kind(client)
-    laser = _kind(client, name="Laser", validMonths=12)
-    grafik = _kind(client, name="Grafik", selfService=True)
+    from hubra.core.models.member import Member
+
+    kind = _kind(client, name="Laser-Einführung")
+    _login(client, "admin@test.ch")
+    # Made through Inventory's API: Guides never imports Inventory.
     resp = client.post(
-        Q,
-        json={
-            "memberId": club["max"],
-            "kindId": laser["id"],
-            "obtainedOn": "2025-01-01",
-        },
+        "/api/v1/inventory/",
+        json={"name": "Laser cutter", "category": "Tool", "status": "available"},
     )
     assert resp.status_code == 201, resp.get_json()
-
-    kinds = query("qualifications.kinds.list", actor=SYSTEM)
-    assert [k["name"] for k in kinds] == ["Laser", "Nothelfer"]
-    assert query(
-        "qualifications.kinds.list", ids=[laser["id"], grafik["id"]], actor=SYSTEM
-    ) == [{"id": laser["id"], "name": "Laser", "valid_months": 12}]
-
-    held = query(
-        "qualifications.member.holds",
-        member_id=club["max"],
-        kind_ids=[laser["id"], first_aid["id"], grafik["id"], 999],
-        actor=SYSTEM,
+    item = SimpleNamespace(id=resp.get_json()["id"])
+    admin_id = seeded_db["admin"].id
+    resp = client.put(
+        f"/api/v1/guides/{item.id}",
+        json={"guide": "# Laser", "qualification_id": kind["id"]},
     )
-    assert [(h["kind_id"], h["state"]) for h in held] == [
-        (laser["id"], "expired"),
-        (first_aid["id"], None),
-    ]
+    assert resp.status_code == 200, resp.get_json()
+    assert resp.get_json()["qualification"] == {
+        "id": kind["id"],
+        "name": "Laser-Einführung",
+        "mine": None,
+    }
+    assert (
+        client.put(
+            f"/api/v1/guides/{item.id}", json={"qualification_id": 999}
+        ).status_code
+        == 400
+    )
+    _login(client, "kim@test.ch")
+    client.post(
+        Q, json={"memberId": admin_id, "kindId": kind["id"], "obtainedOn": "2025-01-01"}
+    )
+    _login(client, "admin@test.ch")
+    got = client.get(f"/api/v1/guides/{item.id}").get_json()
+    assert got["qualification"]["mine"] == "valid"
+    assert db.session.get(Member, admin_id)
 
 
 def test_members_add_what_they_can_do(client, db, club):
@@ -231,7 +237,9 @@ def test_members_add_what_they_can_do(client, db, club):
     # The same name again, in other case: the one kind, and only once.
     assert client.post(f"{Q}/mine", json={"name": "elektriker"}).status_code == 409
     # Managed kinds are not for members to claim.
-    assert client.post(f"{Q}/mine", json={"kindId": managed["id"]}).status_code == 403
+    assert (
+        client.post(f"{Q}/mine", json={"kindId": managed["id"]}).status_code == 403
+    )
     assert client.post(f"{Q}/mine", json={"name": "nothelfer"}).status_code == 403
     assert client.post(f"{Q}/mine", json={"kindId": 999}).status_code == 404
     assert client.post(f"{Q}/mine", json={}).status_code == 400
@@ -242,7 +250,9 @@ def test_members_add_what_they_can_do(client, db, club):
     assert kinds["Elektriker"]["selfService"] is True
     assert kinds["Nothelfer"]["selfService"] is False
     assert (
-        client.post(f"{Q}/mine", json={"kindId": kinds["Elektriker"]["id"]}).status_code
+        client.post(
+            f"{Q}/mine", json={"kindId": kinds["Elektriker"]["id"]}
+        ).status_code
         == 201
     )
     found = client.get(f"{Q}/directory?q=efz").get_json()
@@ -275,7 +285,35 @@ def test_members_add_what_they_can_do(client, db, club):
     kims = [r for r in client.get(f"{Q}/directory").get_json() if not r["mine"]]
     assert client.delete(f"{Q}/mine/{kims[0]['id']}").status_code == 404
     assert client.delete(f"{Q}/mine/{mine['Elektriker']['id']}").status_code == 204
-    assert [m["kindName"] for m in client.get(f"{Q}/mine").get_json()] == ["Nothelfer"]
+    assert [m["kindName"] for m in client.get(f"{Q}/mine").get_json()] == [
+        "Nothelfer"
+    ]
+
+
+def test_self_service_kinds_never_gate_an_item(client, db, club):
+    kind = _kind(client, name="Grafik", selfService=True)
+    assert kind["selfService"] is True
+    _login(client, "admin@test.ch")
+    resp = client.post(
+        "/api/v1/inventory/",
+        json={"name": "Plotter", "category": "Tool", "status": "available"},
+    )
+    item_id = resp.get_json()["id"]
+    resp = client.put(f"/api/v1/guides/{item_id}", json={"qualification_id": kind["id"]})
+    assert resp.status_code == 400
+    _login(client, "kim@test.ch")
+    laser = _kind(client, name="Laser")
+    _login(client, "admin@test.ch")
+    assert (
+        client.put(
+            f"/api/v1/guides/{item_id}", json={"qualification_id": laser["id"]}
+        ).status_code
+        == 200
+    )
+    _login(client, "kim@test.ch")
+    # An item takes Laser: members may not start adding it themselves.
+    resp = client.patch(f"{Q}/kinds/{laser['id']}", json={"selfService": True})
+    assert resp.status_code == 400
 
 
 def test_another_member_confirms_a_self_service_entry(client, db, club):
@@ -329,4 +367,6 @@ def test_another_member_confirms_a_self_service_entry(client, db, club):
     _login(client, "max@test.ch")
     assert client.delete(f"{Q}/{entry['id']}/confirm").status_code == 403
     _login(client, "kim@test.ch")
-    assert client.delete(f"{Q}/{entry['id']}/confirm").get_json()["confirmedBy"] is None
+    assert (
+        client.delete(f"{Q}/{entry['id']}/confirm").get_json()["confirmedBy"] is None
+    )

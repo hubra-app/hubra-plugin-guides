@@ -21,8 +21,7 @@ Self-service kinds (``selfService``) are what members can do: "Elektriker",
 "Grafik". Members add and remove those on themselves, naming a new one adds
 it, and every member can search who has one. The club's own qualifications
 (licences, inductions) stay with the managers: only they add, change and
-see those for others, and only those can be what an item takes
-(Inventory asks through the queries in contracts.py).
+see those for others, and only those can be what an item takes.
 
 Everything else needs guides.qualifications.manage.
 A daily job reminds the holder and the managers before one expires.
@@ -43,7 +42,7 @@ from hubra.core.errors import api_error
 from hubra.core.extensions import db
 from hubra.core.models.member import Member
 
-from .models import MemberQualification, QualificationKind
+from .models import ItemGuide, MemberQualification, QualificationKind
 from .routes import guides_bp
 
 LABEL = "Manage qualifications"
@@ -156,8 +155,12 @@ def _read_kind(k: QualificationKind, data: dict) -> None:
         value = data.get("selfService")
         if not isinstance(value, bool):
             raise ValueError("selfService must be true or false")
-        # Inventory only offers the club's own kinds for an item; one that
-        # turns self-service stops being what an item takes.
+        if value and k.id and db.session.scalar(
+            select(ItemGuide.item_id).where(ItemGuide.qualification_id == k.id)
+        ):
+            raise ValueError(
+                "an item takes this qualification, so members cannot add it themselves"
+            )
         k.self_service = value
 
 
@@ -481,10 +484,8 @@ def _own(qid: int):
         return None, None, api_error("NOT_FOUND", "No such qualification.", 404)
     kind = db.session.get(QualificationKind, q.kind_id)
     if not kind.self_service:
-        return (
-            None,
-            None,
-            api_error("FORBIDDEN", "The club manages this qualification.", 403),
+        return None, None, api_error(
+            "FORBIDDEN", "The club manages this qualification.", 403
         )
     return q, kind, None
 
@@ -686,7 +687,7 @@ def remind(today: date | None = None) -> int:
                 kind="warning",
                 title=f"{member.name}: {kind.name} {'expired' if expired else 'expires'} {when}",
                 msg="",
-                link="/app/qualifications",
+                link="/app/inventory/qualifications",
             )
         q.reminded_at = _now()
     db.session.flush()

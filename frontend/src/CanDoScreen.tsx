@@ -42,7 +42,7 @@ export function CanDoScreen() {
         actions={
           <Group gap="xs">
             {manager && (
-              <Button variant="default" onClick={() => go('/app/qualifications')}>
+              <Button variant="default" onClick={() => go('/app/inventory/qualifications')}>
                 {t('qualifications.canDo.manage')}
               </Button>
             )}
