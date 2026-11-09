@@ -1,5 +1,6 @@
-"""ItemGuide: the usage guide of one inventory item, and qualifications
-(trainer licences, first aid, machine inductions) with their expiry."""
+"""Qualifications (trainer licences, first aid, machine inductions) with
+their expiry. The usage guides per item (``item_guides``) moved into
+Inventory 2.4; that table stays until a later release drops it."""
 
 from __future__ import annotations
 
@@ -9,32 +10,6 @@ from sqlalchemy import DateTime, ForeignKey, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from hubra.core.extensions import db
-
-
-class ItemGuide(db.Model):
-    __tablename__ = "item_guides"
-
-    # One guide per item; it goes when the item is deleted for good.
-    item_id: Mapped[int] = mapped_column(
-        db.Integer,
-        ForeignKey("inventory_items.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    # Markdown and/or a link to a manual or video.
-    guide: Mapped[str | None] = mapped_column(Text, nullable=True)
-    guide_url: Mapped[str | None] = mapped_column(db.String(500), nullable=True)
-    # The qualification it takes to use the item (e.g. the laser induction).
-    qualification_id: Mapped[int | None] = mapped_column(
-        db.Integer,
-        ForeignKey("qualification_kinds.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-        nullable=False,
-    )
 
 
 class QualificationKind(db.Model):

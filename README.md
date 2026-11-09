@@ -1,10 +1,13 @@
-# Guides
+# Qualifications
 
 [![Test and release](https://github.com/hubra-app/hubra-plugin-guides/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/hubra-app/hubra-plugin-guides/actions/workflows/release.yml?query=branch%3Amain) [![License: all rights reserved](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)](LICENSE)
 
-A plugin for [Hubra](https://hubra.club). A usage guide per machine or tool, in Markdown or as a link to a manual or video, shown on the inventory item.
+A plugin for [Hubra](https://hubra.club). Who in the club holds which qualification
+(trainer licence, first aid, machine induction) and until when, plus *Wer kann was*:
+what members can do for the club. Until 1.x this plugin was *Guides*; the usage
+guides per inventory item are part of the Inventory plugin since its 2.4.
 
-**Version** 1.5.0 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides`
+**Version** 2.0.0 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides`
 
 ## Qualifications
 
@@ -19,8 +22,10 @@ and "expired".
 - A daily job notifies the holder and everyone who manages qualifications once
   before it expires; a renewal arms the reminder again.
 - Members see their own under *My qualifications* on their account page.
-- A guide can name the qualification its item takes; the guide then shows it,
-  and whether the reader holds it.
+- Other plugins read the club's types and who holds them through the query
+  contracts `qualifications.kinds.list` and `qualifications.member.holds`
+  (Inventory uses them to show which qualification an item takes). Only the
+  club's own types are offered there, never self-service ones.
 
 ## Who can do what
 

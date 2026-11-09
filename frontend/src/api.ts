@@ -1,31 +1,6 @@
 import { apiFetch } from '@hubra/plugin-sdk'
 
-export interface Guide {
-  itemId: number
-  itemName: string
-  guide: string | null
-  guideUrl: string | null
-  instructionRequired: boolean
-  /** The qualification it takes to use the item, and whether I hold it. */
-  qualification: { id: number; name: string; mine: QualificationState | null } | null
-}
-
 export type QualificationState = 'valid' | 'soon' | 'expired'
-
-export const getGuide = (itemId: number) => apiFetch<Guide>(`/guides/${itemId}`)
-
-export const saveGuide = (
-  itemId: number,
-  input: { guide: string | null; guideUrl: string | null; qualificationId: number | null },
-) =>
-  apiFetch<Guide>(`/guides/${itemId}`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      guide: input.guide,
-      guide_url: input.guideUrl,
-      qualification_id: input.qualificationId,
-    }),
-  })
 
 // ── Qualifications ──────────────────────────────────────────────────────────
 
