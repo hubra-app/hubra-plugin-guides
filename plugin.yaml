@@ -8,6 +8,11 @@ homepage: https://github.com/hubra-app/hubra-plugin-guides
 tags: [guides, inventory]
 package: hubra_guides
 modules: [guides]
+# The guides show on Inventory's item page (slot inventory.item), so Guides
+# is an add-on of Inventory. A guide doesn't need an item, though.
+requires: [inventory]
+depends:
+  inventory: ">=2.0,<3"
 migrations: migrations
 frontend: frontend/dist/plugin.js
 # The areas this plugin extends; Hubra refuses a plugin that touches one it

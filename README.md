@@ -20,7 +20,8 @@ in Markdown or as a link to a manual or video.
 - A guide can name the qualification it takes; the page then shows it and
   whether the reader holds it. It is shown, not enforced.
 
-Guides needs no other plugin. Items come from the Inventory plugin's queries
+Guides is an add-on of Inventory (`depends: inventory >=2.0,<3`), since its
+guides show on the item page; a guide doesn't need an item, though. Items come from the Inventory plugin's queries
 (`inventory.items.get`, `inventory.items.list`) and qualifications from the
 [Qualifications](https://github.com/hubra-app/hubra-plugin-qualifications)
 plugin's (`qualifications.kinds.list`, `qualifications.member.holds`); without

@@ -16,8 +16,9 @@ their own plugin.
   1.0.0, which takes over `qualification_kinds` and `member_qualifications`
   with their rows. Install it together with this update. Removing Guides
   never removes those tables.
-- No longer needs Inventory: items and qualifications come from the other
-  plugins' queries; a deleted item leaves its guides without an item.
+- Still an add-on of Inventory (for the item page), but it imports nothing
+  from it: items and qualifications come from the other plugins' queries;
+  a deleted item leaves its guides without an item.
 - The module is `guides` now (was `inventory.guides`). Clubs that had Guides
   on keep it on (`renamed_from`); this needs the Hubra release with
   hubra-app/hubra#278. The rights `guides.guides.read`/`write` stay.
