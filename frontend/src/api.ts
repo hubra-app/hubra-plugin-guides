@@ -50,6 +50,10 @@ export interface Qualification {
   expiresOn: string | null
   note: string | null
   state: QualificationState
+  /** Self-service: the member who vouched for it. */
+  confirmedBy: string | null
+  confirmedById: number | null
+  confirmedAt: string | null
 }
 
 export interface KindInput {
@@ -93,6 +97,9 @@ export interface CanDo {
   kindName: string
   note: string | null
   mine: boolean
+  confirmedBy: string | null
+  confirmedById: number | null
+  confirmedAt: string | null
 }
 
 export const listCanDo = (q: string) => apiFetch<CanDo[]>(`${Q}/directory?${new URLSearchParams({ q })}`)
@@ -101,3 +108,5 @@ export const addMine = (input: { kindId?: number; name?: string; note: string | 
 export const updateMine = (id: number, note: string | null) =>
   apiFetch<Qualification>(`${Q}/mine/${id}`, { method: 'PATCH', body: JSON.stringify({ note }) })
 export const deleteMine = (id: number) => apiFetch<void>(`${Q}/mine/${id}`, { method: 'DELETE' })
+export const confirmCanDo = (id: number) => apiFetch<Qualification>(`${Q}/${id}/confirm`, { method: 'POST' })
+export const unconfirmCanDo = (id: number) => apiFetch<Qualification>(`${Q}/${id}/confirm`, { method: 'DELETE' })

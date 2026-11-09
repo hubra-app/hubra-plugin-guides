@@ -14,6 +14,8 @@ POST   /qualifications/mine           {kindId | name, note?} add what I can do
 PATCH  /qualifications/mine/<id>      {note}
 DELETE /qualifications/mine/<id>
 GET    /qualifications/directory      ?q=&kindId= who can do what (every member)
+POST   /qualifications/<id>/confirm   another member vouches for a self-service one
+DELETE /qualifications/<id>/confirm   that member, or a manager, takes it back
 
 Self-service kinds (``selfService``) are what members can do: "Elektriker",
 "Grafik". Members add and remove those on themselves, naming a new one adds
@@ -101,6 +103,17 @@ def _out(q: MemberQualification, kind: QualificationKind, name: str | None) -> d
         "expiresOn": q.expires_on.isoformat() if q.expires_on else None,
         "note": q.note,
         "state": state(q, kind, date.today()),
+        **_confirmed(q),
+    }
+
+
+def _confirmed(q: MemberQualification) -> dict:
+    """Who vouched for a self-service entry, and when."""
+    who = db.session.get(Member, q.confirmed_by) if q.confirmed_by else None
+    return {
+        "confirmedBy": who.name if who else None,
+        "confirmedById": q.confirmed_by if who else None,
+        "confirmedAt": q.confirmed_at.isoformat() if who and q.confirmed_at else None,
     }
 
 
@@ -484,9 +497,13 @@ def update_mine(qid: int):
     if err:
         return err
     try:
-        q.note = _note(request.get_json(silent=True) or {})
+        note = _note(request.get_json(silent=True) or {})
     except ValueError as exc:
         return _bad(exc)
+    if note != q.note:
+        # A confirmation vouches for what it said; a new claim needs a new one.
+        q.confirmed_by = q.confirmed_at = None
+    q.note = note
     q.updated_at = _now()
     db.session.commit()
     return jsonify(_out(q, kind, get_current_member().name))
@@ -544,10 +561,78 @@ def directory():
                 "kindName": k.name,
                 "note": q.note,
                 "mine": m.id == me.id,
+                **_confirmed(q),
             }
             for q, k, m in rows
         ]
     )
+
+
+def _self_entry(qid: int):
+    q = db.session.get(MemberQualification, qid)
+    kind = db.session.get(QualificationKind, q.kind_id) if q else None
+    if q is None or not kind.self_service:
+        return None, None, api_error("NOT_FOUND", "No such entry.", 404)
+    return q, kind, None
+
+
+@guides_bp.post("/qualifications/<int:qid>/confirm")
+@require_member
+def confirm(qid: int):
+    """Another member vouches that the holder can do it."""
+    me = get_current_member()
+    q, kind, err = _self_entry(qid)
+    if err:
+        return err
+    if q.member_id == me.id:
+        return api_error("FORBIDDEN", "Someone else has to confirm yours.", 403)
+    holder = db.session.get(Member, q.member_id)
+    if holder is None or holder.archived_at is not None:
+        return api_error("NOT_FOUND", "No such entry.", 404)
+    if q.confirmed_by and q.confirmed_by != me.id:
+        return api_error("DUPLICATE", "Someone has confirmed this already.", 409)
+    if q.confirmed_by is None:
+        from hubra.core.notifications.services import create_notification
+
+        q.confirmed_by, q.confirmed_at = me.id, _now()
+        log_audit(
+            me.id,
+            "guides.qualification.confirm",
+            "MemberQualification",
+            q.id,
+            f"{holder.name}: {kind.name}",
+        )
+        create_notification(
+            holder.id,
+            kind="info",
+            title=f"{me.name} confirmed: {kind.name}",
+            msg="",
+            link="/app/skills",
+        )
+        db.session.commit()
+    return jsonify(_out(q, kind, holder.name))
+
+
+@guides_bp.delete("/qualifications/<int:qid>/confirm")
+@require_member
+def unconfirm(qid: int):
+    """The member who confirmed it, or a manager, takes it back."""
+    from hubra.core.permissions import member_has_permission
+
+    me = get_current_member()
+    q, kind, err = _self_entry(qid)
+    if err:
+        return err
+    if q.confirmed_by != me.id and not member_has_permission(me, MANAGE):
+        return api_error("FORBIDDEN", "Only who confirmed it can take it back.", 403)
+    if q.confirmed_by is not None:
+        log_audit(
+            me.id, "guides.qualification.unconfirm", "MemberQualification", q.id, None
+        )
+    q.confirmed_by = q.confirmed_at = None
+    db.session.commit()
+    holder = db.session.get(Member, q.member_id)
+    return jsonify(_out(q, kind, holder.name if holder else None))
 
 
 # ── Reminders ────────────────────────────────────────────────────────────────

@@ -39,7 +39,9 @@ export function MyQualificationsCard() {
             </Text>
             <Text fz="xs" c="dimmed" truncate>
               {q.selfService
-                ? q.note || t('qualifications.canDo.selfAdded')
+                ? [q.note || t('qualifications.canDo.selfAdded'), q.confirmedBy && t('qualifications.canDo.confirmedBy', { name: q.confirmedBy })]
+                    .filter(Boolean)
+                    .join(' · ')
                 : q.expiresOn
                   ? t('qualifications.until', { date: formatDate(q.expiresOn) })
                   : t('qualifications.noExpiry')}

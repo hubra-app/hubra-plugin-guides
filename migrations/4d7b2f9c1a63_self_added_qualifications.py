@@ -1,4 +1,5 @@
-"""qualification_kinds.self_service; copy Community's "can do" entries
+"""qualification_kinds.self_service, member_qualifications.confirmed_by/_at;
+copy Community's "can do" entries
 
 Members may add a self-service qualification to themselves ("Elektriker",
 "Grafik"), and every member can search who has one. What members can do
@@ -37,6 +38,21 @@ def upgrade():
                     nullable=False,
                     server_default=sa.false(),
                 )
+            )
+    have = columns("member_qualifications")
+    with op.batch_alter_table("member_qualifications", schema=None) as batch_op:
+        if "confirmed_by" not in have:
+            batch_op.add_column(sa.Column("confirmed_by", sa.Integer(), nullable=True))
+            batch_op.create_foreign_key(
+                "fk_member_qualifications_confirmed_by",
+                "members",
+                ["confirmed_by"],
+                ["id"],
+                ondelete="SET NULL",
+            )
+        if "confirmed_at" not in have:
+            batch_op.add_column(
+                sa.Column("confirmed_at", sa.DateTime(timezone=True), nullable=True)
             )
     _copy_community_skills()
 
@@ -118,5 +134,11 @@ def _day(value) -> date | None:
 
 
 def downgrade():
+    with op.batch_alter_table("member_qualifications", schema=None) as batch_op:
+        batch_op.drop_constraint(
+            "fk_member_qualifications_confirmed_by", type_="foreignkey"
+        )
+        batch_op.drop_column("confirmed_at")
+        batch_op.drop_column("confirmed_by")
     with op.batch_alter_table("qualification_kinds", schema=None) as batch_op:
         batch_op.drop_column("self_service")

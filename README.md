@@ -30,7 +30,9 @@ outside the club's own courses) are qualifications too: types switched to
 lists who has which, with a search; members add their own there or on their
 account page, picking a type or typing a new one, and change or remove only
 their own. Managers still see and edit everything under *Qualifications*.
-A self-service type can never be what an item takes, since nobody checked it.
+Any other member can confirm an entry ("Bestätigen"); it then shows who
+vouched for it, and changing the note clears that. A self-service type can
+never be what an item takes, since no manager checked it.
 
 This replaces the "Kann" entries of the Community plugin's skills directory:
 updating to 1.5.0 copies them here once (when that table exists; Guides does

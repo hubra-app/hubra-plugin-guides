@@ -95,6 +95,14 @@ class MemberQualification(db.Model):
     created_by: Mapped[int | None] = mapped_column(
         db.Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True
     )
+    # Self-service entries: another member vouches for it ("Bestätigt von").
+    # Cleared when the holder changes the note.
+    confirmed_by: Mapped[int | None] = mapped_column(
+        db.Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True
+    )
+    confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

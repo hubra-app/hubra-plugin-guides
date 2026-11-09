@@ -314,3 +314,59 @@ def test_self_service_kinds_never_gate_an_item(client, db, club):
     # An item takes Laser: members may not start adding it themselves.
     resp = client.patch(f"{Q}/kinds/{laser['id']}", json={"selfService": True})
     assert resp.status_code == 400
+
+
+def test_another_member_confirms_a_self_service_entry(client, db, club):
+    from hubra.core.models.notification import Notification
+
+    managed = _kind(client)
+    _login(client, "max@test.ch")
+    entry = client.post(f"{Q}/mine", json={"name": "Elektriker", "note": "EFZ"})
+    entry = entry.get_json()
+    assert entry["confirmedBy"] is None
+    # Not one's own.
+    assert client.post(f"{Q}/{entry['id']}/confirm").status_code == 403
+
+    _login(client, "kim@test.ch")
+    got = client.post(f"{Q}/{entry['id']}/confirm")
+    assert got.status_code == 200, got.get_json()
+    assert got.get_json()["confirmedBy"] == "Test Kim"
+    assert client.post(f"{Q}/{entry['id']}/confirm").status_code == 200  # again: same
+    row = client.get(f"{Q}/directory?q=elektr").get_json()[0]
+    assert row["confirmedBy"] == "Test Kim" and row["confirmedById"] == club["kim"]
+    notes = db.session.query(Notification).filter_by(member_id=club["max"]).all()
+    assert any("confirmed" in n.title for n in notes)
+    # Managed qualifications are not confirmed this way.
+    held = client.post(
+        Q,
+        json={
+            "memberId": club["max"],
+            "kindId": managed["id"],
+            "obtainedOn": "2025-01-01",
+        },
+    ).get_json()
+    assert client.post(f"{Q}/{held['id']}/confirm").status_code == 404
+
+    # A new claim needs a new confirmation.
+    _login(client, "max@test.ch")
+    assert (
+        client.patch(f"{Q}/mine/{entry['id']}", json={"note": "EFZ"}).get_json()[
+            "confirmedBy"
+        ]
+        == "Test Kim"
+    )
+    assert (
+        client.patch(f"{Q}/mine/{entry['id']}", json={"note": "Meister"}).get_json()[
+            "confirmedBy"
+        ]
+        is None
+    )
+    # Only the confirmer (or a manager) takes it back.
+    _login(client, "kim@test.ch")
+    client.post(f"{Q}/{entry['id']}/confirm")
+    _login(client, "max@test.ch")
+    assert client.delete(f"{Q}/{entry['id']}/confirm").status_code == 403
+    _login(client, "kim@test.ch")
+    assert (
+        client.delete(f"{Q}/{entry['id']}/confirm").get_json()["confirmedBy"] is None
+    )

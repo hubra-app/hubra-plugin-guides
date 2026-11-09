@@ -2,16 +2,32 @@ import { useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ActionIcon, Autocomplete, Badge, Button, Group, Paper, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
-import { IconPencil, IconPlus, IconSearch, IconTools } from '@tabler/icons-react'
+import { IconCircleCheck, IconPencil, IconPlus, IconSearch, IconTools } from '@tabler/icons-react'
 import { EmptyState, ErrorBanner, Field, LoadingSpinner, Modal, PageHead, useAuth, useNav, useT, useToast } from '@hubra/plugin-sdk'
-import { addMine, deleteMine, listCanDo, listKinds, updateMine, type CanDo } from './api'
+import { addMine, confirmCanDo, deleteMine, listCanDo, listKinds, unconfirmCanDo, updateMine, type CanDo } from './api'
 
 const KEY = ['guides', 'canDo']
 
 /** Who in the club can do what: the self-service qualifications. */
 export function CanDoScreen() {
   const { t } = useT()
-  const { hasPermission } = useAuth()
+  const { hasPermission, currentUser } = useAuth()
+  const me = currentUser ? Number(currentUser.id) : null
+  const manager = hasPermission('guides.qualifications.manage')
+  const qc = useQueryClient()
+  const { notify } = useToast()
+  const [busyId, setBusyId] = useState<number | null>(null)
+  const vouch = async (c: CanDo, on: boolean) => {
+    setBusyId(c.id)
+    try {
+      await (on ? confirmCanDo(c.id) : unconfirmCanDo(c.id))
+      qc.invalidateQueries({ queryKey: ['guides'] })
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusyId(null)
+    }
+  }
   const { go } = useNav()
   const [q, setQ] = useState('')
   const [search] = useDebouncedValue(q.trim(), 250)
@@ -25,7 +41,7 @@ export function CanDoScreen() {
         desc={t('qualifications.canDo.desc')}
         actions={
           <Group gap="xs">
-            {hasPermission('guides.qualifications.manage') && (
+            {manager && (
               <Button variant="default" onClick={() => go('/app/inventory/qualifications')}>
                 {t('qualifications.canDo.manage')}
               </Button>
@@ -76,6 +92,32 @@ export function CanDoScreen() {
                     </Text>
                   )}
                   <Text size="sm">{c.memberName}</Text>
+                  {c.confirmedBy ? (
+                    <Group gap={4} wrap="wrap">
+                      <IconCircleCheck size={14} color="var(--mantine-color-green-6)" style={{ flexShrink: 0 }} />
+                      <Text size="xs" c="dimmed">
+                        {t('qualifications.canDo.confirmedBy', { name: c.confirmedBy })}
+                      </Text>
+                      {(c.confirmedById === me || (manager && !c.mine)) && (
+                        <Button size="compact-xs" variant="subtle" color="gray" loading={busyId === c.id} onClick={() => vouch(c, false)}>
+                          {t('qualifications.canDo.unconfirm')}
+                        </Button>
+                      )}
+                    </Group>
+                  ) : (
+                    !c.mine && (
+                      <Button
+                        size="compact-xs"
+                        variant="light"
+                        leftSection={<IconCircleCheck size={14} />}
+                        loading={busyId === c.id}
+                        onClick={() => vouch(c, true)}
+                        style={{ alignSelf: 'flex-start' }}
+                      >
+                        {t('qualifications.canDo.confirm')}
+                      </Button>
+                    )
+                  )}
                 </Stack>
                 {c.mine && (
                   <ActionIcon variant="subtle" onClick={() => setEditing(c)} aria-label={t('qualifications.canDo.edit')}>

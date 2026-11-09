@@ -83,7 +83,7 @@
       "selfServiceShort": "self-service",
       "canDo": {
         "title": "Who can do what",
-        "desc": "What members can do for the club: an electrician for the clubhouse, someone for the poster. Add what you can do; everyone can search it.",
+        "desc": "What members can do for the club: an electrician for the clubhouse, someone for the poster. Add what you can do; everyone can search it. If you know someone can do it, confirm it.",
         "add": "What I can do",
         "edit": "Edit",
         "manage": "Manage qualifications",
@@ -98,7 +98,10 @@
         "whatHint": "Pick one that exists or type a new one",
         "example": "Electrician",
         "noteHint": "Optional: training, how often you have time",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "unconfirm": "Take back",
+        "confirmedBy": "Confirmed by {{name}}"
       }
     },
     "shell": {
@@ -192,7 +195,7 @@
       "selfServiceShort": "selbst eingetragen",
       "canDo": {
         "title": "Wer kann was",
-        "desc": "Was Mitglieder für den Verein können: ein Elektriker fürs Clubhaus, jemand fürs Plakat. Trag ein, was du kannst; alle können danach suchen.",
+        "desc": "Was Mitglieder für den Verein können: ein Elektriker fürs Clubhaus, jemand fürs Plakat. Trag ein, was du kannst; alle können danach suchen. Weisst du, dass jemand es kann, bestätige es.",
         "add": "Was ich kann",
         "edit": "Bearbeiten",
         "manage": "Qualifikationen verwalten",
@@ -207,7 +210,10 @@
         "whatHint": "Wähle etwas Bestehendes oder schreib etwas Neues",
         "example": "Elektriker",
         "noteHint": "Optional: Ausbildung, wie oft du Zeit hast",
-        "cancel": "Abbrechen"
+        "cancel": "Abbrechen",
+        "confirm": "Bestätigen",
+        "unconfirm": "Zurücknehmen",
+        "confirmedBy": "Bestätigt von {{name}}"
       }
     },
     "shell": {
