@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.5.2
+
+1.5.1 was tagged but couldn't be signed, so it was never released. 1.5.2 is the same plugin, signed. What it brings:
+
+- Who can do what: qualification types can let members add them to
+  themselves (`selfService`). Every member sees and searches those under
+  *Wer kann was* (`/app/skills`) and adds, changes or removes their own, there
+  or on their account page; a new name adds a new self-service type. The
+  club's own types stay with the managers. A self-service type cannot be what
+  an item takes.
+- Another member can confirm ("Bestätigen") someone's self-service entry;
+  the card then shows "Bestätigt von …" and the holder gets a notification.
+  Changing the note clears it; the confirmer or a manager can take it back.
+- New API: `POST/PATCH/DELETE /qualifications/mine`, `GET /qualifications/directory`,
+  `POST/DELETE /qualifications/<id>/confirm`.
+- Columns `qualification_kinds.self_service`,
+  `member_qualifications.confirmed_by`/`confirmed_at`. The migration copies the
+  Community plugin's "Kann" entries (`community_skills`, kind `skill`) into
+  self-service qualifications, if that table exists.
+
 ## 1.5.1
 
 1.5.0 was tagged but couldn't be signed, so it was never released. 1.5.1 is the same plugin, signed. What 1.5.0 brings:
