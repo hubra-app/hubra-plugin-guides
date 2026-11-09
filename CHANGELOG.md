@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.0.0
+
+Guides are how-tos now, for an item or on their own, and qualifications are
+their own plugin.
+
+- A guide has a title and stands on its own; it may belong to an inventory
+  item. New page *Guides* (`/app/guides`) lists and searches them; each guide
+  has its page at `/app/guides/<id>`. The item shows its guides and links to
+  write one; `/app/inventory/<id>/guide` still opens the item's guide.
+- Every item's guide is copied into the new table `guides`, titled with the
+  item's name. `item_guides` stays for now; a later release drops it.
+- Qualifications and *Wer kann was* moved to the new plugin
+  [Qualifications](https://github.com/hubra-app/hubra-plugin-qualifications)
+  1.0.0, which takes over `qualification_kinds` and `member_qualifications`
+  with their rows. Install it together with this update. Removing Guides
+  never removes those tables.
+- No longer needs Inventory: items and qualifications come from the other
+  plugins' queries; a deleted item leaves its guides without an item.
+- The module is `guides` now (was `inventory.guides`). Clubs that had Guides
+  on keep it on (`renamed_from`); this needs the Hubra release with
+  hubra-app/hubra#278. The rights `guides.guides.read`/`write` stay.
+- API: `GET/POST /guides/`, `GET/PATCH/DELETE /guides/<id>`,
+  `GET /guides/items`, `GET /guides/qualification-kinds`. The 1.x
+  `GET/PUT /guides/<item_id>` and `/guides/qualifications/*` are gone.
+
 ## 1.5.2
 
 1.5.1 was tagged but couldn't be signed, so it was never released. 1.5.2 is the same plugin, signed. What it brings:

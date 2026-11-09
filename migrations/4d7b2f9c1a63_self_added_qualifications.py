@@ -134,11 +134,6 @@ def _day(value) -> date | None:
 
 
 def downgrade():
-    with op.batch_alter_table("member_qualifications", schema=None) as batch_op:
-        batch_op.drop_constraint(
-            "fk_member_qualifications_confirmed_by", type_="foreignkey"
-        )
-        batch_op.drop_column("confirmed_at")
-        batch_op.drop_column("confirmed_by")
-    with op.batch_alter_table("qualification_kinds", schema=None) as batch_op:
-        batch_op.drop_column("self_service")
+    # The qualification tables belong to the Qualifications plugin since
+    # Guides 2.0: removing Guides leaves them as they are.
+    pass

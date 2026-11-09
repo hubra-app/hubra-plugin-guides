@@ -1,110 +1,42 @@
-"""ItemGuide: the usage guide of one inventory item, and qualifications
-(trainer licences, first aid, machine inductions) with their expiry."""
+"""A guide: a how-to in Markdown and/or a link to a manual or video."""
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Text, false
+from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from hubra.core.extensions import db
 
 
-class ItemGuide(db.Model):
-    __tablename__ = "item_guides"
-
-    # One guide per item; it goes when the item is deleted for good.
-    item_id: Mapped[int] = mapped_column(
-        db.Integer,
-        ForeignKey("inventory_items.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    # Markdown and/or a link to a manual or video.
-    guide: Mapped[str | None] = mapped_column(Text, nullable=True)
-    guide_url: Mapped[str | None] = mapped_column(db.String(500), nullable=True)
-    # The qualification it takes to use the item (e.g. the laser induction).
-    qualification_id: Mapped[int | None] = mapped_column(
-        db.Integer,
-        ForeignKey("qualification_kinds.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-        nullable=False,
-    )
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
-class QualificationKind(db.Model):
-    """A qualification the club tracks: "J+S Leiter", "Nothelfer", "Laser"."""
+class Guide(db.Model):
+    """How to use a machine or tool, or how to do something in the club
+    ("Lock up the clubhouse"). It may belong to an inventory item.
 
-    __tablename__ = "qualification_kinds"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(db.String(120), nullable=False, unique=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # How long it is valid; None: it does not expire.
-    valid_months: Mapped[int | None] = mapped_column(db.Integer, nullable=True)
-    # Days before expiry the holder and the managers are reminded.
-    remind_days: Mapped[int] = mapped_column(db.Integer, default=30, nullable=False)
-    # Members add it to themselves ("Elektriker", "Grafik"), and every member
-    # can see who has it. Never what an item takes: nobody checks it.
-    self_service: Mapped[bool] = mapped_column(
-        db.Boolean, default=False, server_default=false(), nullable=False
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False,
-    )
-
-
-class MemberQualification(db.Model):
-    """One member holds one qualification, from a day, maybe until a day.
-
-    One row per member and kind: a renewal moves the dates.
+    The item and the qualification it takes belong to other plugins
+    (Inventory, Qualifications), so only their ids are kept, without a
+    foreign key; names come from their queries.
     """
 
-    __tablename__ = "member_qualifications"
-    __table_args__ = (
-        db.UniqueConstraint("member_id", "kind_id", name="uq_member_qualification"),
-    )
+    __tablename__ = "guides"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    member_id: Mapped[int] = mapped_column(
-        db.Integer,
-        ForeignKey("members.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    kind_id: Mapped[int] = mapped_column(
-        db.Integer,
-        ForeignKey("qualification_kinds.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    obtained_on: Mapped[date] = mapped_column(db.Date, nullable=False)
-    expires_on: Mapped[date | None] = mapped_column(db.Date, nullable=True)
-    note: Mapped[str | None] = mapped_column(db.String(500), nullable=True)
-    # Set when the reminder went out; cleared by a renewal.
-    reminded_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    title: Mapped[str] = mapped_column(db.String(200), nullable=False)
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    url: Mapped[str | None] = mapped_column(db.String(500), nullable=True)
+    item_id: Mapped[int | None] = mapped_column(db.Integer, nullable=True, index=True)
+    qualification_kind_id: Mapped[int | None] = mapped_column(db.Integer, nullable=True)
     created_by: Mapped[int | None] = mapped_column(
         db.Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True
     )
-    # Self-service entries: another member vouches for it ("Bestätigt von").
-    # Cleared when the holder changes the note.
-    confirmed_by: Mapped[int | None] = mapped_column(
-        db.Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True
-    )
-    confirmed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False,
+        DateTime(timezone=True), default=_now, onupdate=_now, nullable=False
     )

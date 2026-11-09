@@ -70,5 +70,5 @@ def downgrade():
     with op.batch_alter_table("item_guides", schema=None) as batch_op:
         batch_op.drop_constraint("fk_item_guides_qualification", type_="foreignkey")
         batch_op.drop_column("qualification_id")
-    op.drop_table("member_qualifications")
-    op.drop_table("qualification_kinds")
+    # The qualification tables belong to the Qualifications plugin since
+    # Guides 2.0: removing Guides must never take them with it.

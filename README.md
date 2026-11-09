@@ -2,41 +2,36 @@
 
 [![Test and release](https://github.com/hubra-app/hubra-plugin-guides/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/hubra-app/hubra-plugin-guides/actions/workflows/release.yml?query=branch%3Amain) [![License: all rights reserved](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)](LICENSE)
 
-A plugin for [Hubra](https://hubra.club). A usage guide per machine or tool, in Markdown or as a link to a manual or video, shown on the inventory item.
+A plugin for [Hubra](https://hubra.club). How-tos for machines, tools and
+everything else the club does ("Lock up the clubhouse", "Set up the bar"),
+in Markdown or as a link to a manual or video.
 
-**Version** 1.5.0 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides`
+**Version** 2.0.0 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides` · **Module** `guides`
 
-## Qualifications
+## What it does
 
-Trainer licences, first aid, machine inductions: *Qualifications* (permission
-**Manage qualifications**, `guides.qualifications.manage`) lists who holds
-which and until when, soonest expiry first, with filters for "expires soon"
-and "expired".
+- *Guides* (`/app/guides`, right **Read guides**, `guides.guides.read`) lists
+  every guide with a search. Each guide has its own page with a table of
+  contents built from its `##` headings, and a link to every section.
+- Writing (**Write guides**, `guides.guides.write`): a title, the text with a
+  preview, a link to a manual or video.
+- A guide can belong to an inventory item. The item then lists its guides,
+  and `/app/inventory/<id>/guide` opens the item's guide.
+- A guide can name the qualification it takes; the page then shows it and
+  whether the reader holds it. It is shown, not enforced.
 
-- A qualification type has a validity in months (empty: it does not expire)
-  and how many days before expiry to remind.
-- Entering one again for the same member renews it.
-- A daily job notifies the holder and everyone who manages qualifications once
-  before it expires; a renewal arms the reminder again.
-- Members see their own under *My qualifications* on their account page.
-- A guide can name the qualification its item takes; the guide then shows it,
-  and whether the reader holds it.
+Guides needs no other plugin. Items come from the Inventory plugin's queries
+(`inventory.items.get`, `inventory.items.list`) and qualifications from the
+[Qualifications](https://github.com/hubra-app/hubra-plugin-qualifications)
+plugin's (`qualifications.kinds.list`, `qualifications.member.holds`); without
+them a guide has neither. When an item is deleted, its guides stay and no
+longer belong to an item.
 
-## Who can do what
+## Qualifications moved out
 
-What members can do for the club (electrician, graphic design, first aid
-outside the club's own courses) are qualifications too: types switched to
-"Members add it themselves". *Wer kann was* (`/app/skills`, every member)
-lists who has which, with a search; members add their own there or on their
-account page, picking a type or typing a new one, and change or remove only
-their own. Managers still see and edit everything under *Qualifications*.
-Any other member can confirm an entry ("Bestätigen"); it then shows who
-vouched for it, and changing the note clears that. A self-service type can
-never be what an item takes, since no manager checked it.
-
-This replaces the "Kann" entries of the Community plugin's skills directory:
-updating to 1.5.0 copies them here once (when that table exists; Guides does
-not need Community).
+Up to 1.x Guides also kept qualifications and *Wer kann was*. Those are the
+Qualifications plugin now, which takes over their tables and rows. Install
+it alongside Guides 2.0 to keep them. See `CHANGELOG.md`.
 
 ## Install
 
