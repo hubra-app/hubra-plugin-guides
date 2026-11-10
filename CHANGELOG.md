@@ -25,6 +25,13 @@ their own plugin.
 - API: `GET/POST /guides/`, `GET/PATCH/DELETE /guides/<id>`,
   `GET /guides/items`, `GET /guides/qualification-kinds`. The 1.x
   `GET/PUT /guides/<item_id>` and `/guides/qualifications/*` are gone.
+- Gives the standard roles access when a club first switches it on
+  (`role_defaults`): Mitglied Ansehen, Vorstand Bearbeiten. Needs Hubra 0.2.5
+  or later.
+
+## 1.6.0
+
+- Gives the standard roles access when a club first switches it on (`role_defaults`, docs/roles.md in hubra-app/hubra): Mitglied Ansehen, Vorstand Bearbeiten. Roles without access don't see it; their own data from it stays on their profile. Needs Hubra 0.2.5 or later.
 
 ## 1.5.2
 

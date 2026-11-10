@@ -1,7 +1,7 @@
 id: guides
 name: Guides
 version: "2.0.0"
-hubra: ">=0.2,<1"
+hubra: ">=0.2.5,<1"
 description: "How-tos for machines, tools and everything else the club does, in Markdown or as a link to a manual or video, each on a page of its own with a table of contents. A guide can belong to an inventory item and name the qualification it takes."
 author: Hubra
 homepage: https://github.com/hubra-app/hubra-plugin-guides
