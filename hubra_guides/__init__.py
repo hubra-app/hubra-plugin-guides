@@ -5,6 +5,9 @@ from hubra.core.modules import Blueprint, Module, NavItem, Schedule
 
 module = Module(
     code="inventory.guides",
+    # Access the standard roles get when a club first switches it on
+    # (docs/roles.md in hubra-app/hubra).
+    role_defaults={"member": "view", "board": "edit"},
     name="Guides",
     description=(
         "Usage guides for machines and tools (Markdown or a Google Drive link), "
