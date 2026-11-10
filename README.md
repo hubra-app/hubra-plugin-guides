@@ -6,7 +6,7 @@ A plugin for [Hubra](https://hubra.club). How-tos for machines, tools and
 everything else the club does ("Lock up the clubhouse", "Set up the bar"),
 in Markdown or as a link to a manual or video.
 
-**Version** 2.0.0 · **Works with** Hubra >=0.2,<1 · **Plugin id** `guides` · **Module** `guides`
+**Version** 2.0.0 · **Works with** Hubra >=0.2.5,<1 · **Plugin id** `guides` · **Module** `guides`
 
 ## What it does
 
