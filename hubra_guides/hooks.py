@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from sqlalchemy import update
+
 from hubra.core.extensions import db
 
-from .models import ItemGuide
+from .models import Guide
 
 
 def on_item_deleted(tenant_id, item_id: int) -> None:
-    """A deleted item's guide goes with it."""
-    row = db.session.get(ItemGuide, item_id)
-    if row is not None:
-        db.session.delete(row)
+    """A guide outlives its item: it just no longer belongs to one."""
+    db.session.execute(
+        update(Guide).where(Guide.item_id == item_id).values(item_id=None)
+    )

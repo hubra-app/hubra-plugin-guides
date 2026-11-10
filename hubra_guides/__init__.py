@@ -1,20 +1,30 @@
-"""Guides: a how-to per machine or tool, in Markdown or as a Drive link,
-and qualifications (licences, first aid, inductions) with their expiry."""
+"""Guides: how-tos for machines, tools and everything else the club does,
+in Markdown or as a link to a manual or video.
 
-from hubra.core.modules import Blueprint, Module, NavItem, Schedule
+A guide may belong to an inventory item (shown on the item) and name the
+qualification it takes. Items and qualifications come from the Inventory
+and Qualifications plugins' contracts; Guides needs neither.
+
+Until 1.x Guides also kept qualifications, under the module code
+``inventory.guides``. Those moved to their own plugin (Qualifications);
+both modules list the old code under ``renamed_from``, so clubs that had
+Guides on keep it on and get Qualifications on too.
+"""
+
+from hubra.core.modules import Blueprint, Module, NavItem
 
 module = Module(
-    code="inventory.guides",
+    code="guides",
+    renamed_from=("inventory.guides",),
     # Access the standard roles get when a club first switches it on
     # (docs/roles.md in hubra-app/hubra).
     role_defaults={"member": "view", "board": "edit"},
     name="Guides",
     description=(
-        "Usage guides for machines and tools (Markdown or a Google Drive link), "
-        "qualifications with expiry and reminders, and who can do what"
+        "How-tos for machines, tools and everything else the club does, "
+        "in Markdown or as a link to a manual or video"
     ),
     default_enabled=False,
-    depends_on=("inventory",),
     blueprints=(
         Blueprint(
             "hubra_guides.routes",
@@ -22,34 +32,26 @@ module = Module(
             "/api/v1/guides",
         ),
     ),
-    # Guides show in the inventory item panel; qualifications have a page.
     nav=(
-        # Who can do what: every member, next to the other member pages.
         NavItem(
-            "/app/skills",
-            "shell.nav.canDo",
-            "tools",
-            section="more",
-            order=30,
-        ),
-        NavItem(
-            "/app/inventory/qualifications",
-            "shell.nav.qualifications",
-            "certificate",
-            order=34,
-            perms=("guides.qualifications.manage",),
+            "/app/guides",
+            "shell.nav.guides",
+            "book",
+            section="operations",
+            order=6,
+            perms=("guides.guides.read",),
         ),
     ),
-    tasks=("hubra_guides.tasks",),
-    schedule=(
-        Schedule(
-            "guides-remind-qualifications",
-            "hubra_guides.tasks.remind_qualifications",
-            86400.0,
-        ),
-    ),
-    tables=("item_guides", "qualification_kinds", "member_qualifications"),
-    # Items come from Inventory's contracts, never its tables or code.
-    consumes={"inventory.items.get": ">=1,<2", "inventory.item.deleted": ">=1,<2"},
+    # item_guides: the 1.x guides, copied into guides; dropped in a later release.
+    tables=("guides", "item_guides"),
+    # Items and qualifications come from the other plugins' contracts, never
+    # their tables or code; without them a guide has neither.
+    consumes={
+        "inventory.items.get": ">=1,<2",
+        "inventory.items.list": ">=1,<2",
+        "inventory.item.deleted": ">=1,<2",
+        "qualifications.kinds.list": ">=1,<2",
+        "qualifications.member.holds": ">=1,<2",
+    },
     events={"inventory.item.deleted": "hubra_guides.hooks:on_item_deleted"},
 )

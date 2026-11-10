@@ -1,13 +1,15 @@
 id: guides
 name: Guides
-version: "1.6.0"
+version: "2.0.0"
 hubra: ">=0.2.5,<1"
-description: "A usage guide per machine or tool, in Markdown or as a link to a manual or video, on a page of its own, linked from the inventory item. Qualifications (licences, first aid, machine inductions) with expiry and reminders, and who can do what."
+description: "How-tos for machines, tools and everything else the club does, in Markdown or as a link to a manual or video, each on a page of its own with a table of contents. A guide can belong to an inventory item and name the qualification it takes."
 author: Hubra
 homepage: https://github.com/hubra-app/hubra-plugin-guides
-tags: [inventory]
+tags: [guides, inventory]
 package: hubra_guides
-modules: [inventory.guides]
+modules: [guides]
+# The guides show on Inventory's item page (slot inventory.item), so Guides
+# is an add-on of Inventory. A guide doesn't need an item, though.
 requires: [inventory]
 depends:
   inventory: ">=2.0,<3"
@@ -15,4 +17,4 @@ migrations: migrations
 frontend: frontend/dist/plugin.js
 # The areas this plugin extends; Hubra refuses a plugin that touches one it
 # doesn't list. See docs/plugins.md in hubra-app/hubra.
-uses: [routes, tables, events, jobs, nav, frontend, contracts]
+uses: [routes, tables, events, nav, frontend, contracts]
