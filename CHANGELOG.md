@@ -10,6 +10,11 @@ Security fixes from the plugin audit.
   inventory). A guide keeps showing the item it is linked to.
 - Search takes `%` and `_` literally and at most 200 characters.
 - A request body that isn't a JSON object is a 400, not a 500.
+- The guide list comes in pages (`page`, `pageSize`, at most 100), sorted
+  by title in the database; the answer is `{data, total, page, pageSize,
+  totalPages}` instead of a plain list. The Guides page has paging.
+- Images in a guide show as links instead of loading from the other site,
+  which would tell that site who reads the guide and when.
 
 ## 2.0.0
 

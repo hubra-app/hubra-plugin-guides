@@ -58,7 +58,7 @@ def test_a_guide_on_its_own(client, auth_headers, db, seeded_db):
     got = client.get(f"{G}/{gid}").get_json()
     assert got["title"] == "Lock up the clubhouse"
     assert got["itemId"] is None and got["qualification"] is None
-    listed = client.get(f"{G}/?q=lights").get_json()
+    listed = client.get(f"{G}/?q=lights").get_json()["data"]
     assert [g["id"] for g in listed] == [gid]
     assert listed[0]["preview"] == "Lights off."
     assert client.patch(f"{G}/{gid}", json={"title": "Close up"}).status_code == 200
@@ -101,8 +101,10 @@ def test_a_guide_for_an_item_names_its_qualification(
     got = resp.get_json()
     assert got["itemName"] == "Laser cutter" and got["instructionRequired"] is True
     assert got["qualification"] == {"id": 7, "name": "Laser induction", "mine": "soon"}
-    assert [g["id"] for g in client.get(f"{G}/?itemId=5").get_json()] == [got["id"]]
-    assert client.get(f"{G}/?itemId=6").get_json() == []
+    assert [g["id"] for g in client.get(f"{G}/?itemId=5").get_json()["data"]] == [
+        got["id"]
+    ]
+    assert client.get(f"{G}/?itemId=6").get_json()["data"] == []
 
 
 def test_a_deleted_item_leaves_its_guide(client, auth_headers, db, seeded_db, others):
@@ -171,6 +173,19 @@ def test_body_must_be_an_object(client, auth_headers, db, seeded_db):
 def test_search_takes_wildcards_literally(client, auth_headers, db, seeded_db):
     a = client.post(f"{G}/", json={"title": "Lock up"}).get_json()["id"]
     b = client.post(f"{G}/", json={"title": "100% safe_mode"}).get_json()["id"]
-    assert [g["id"] for g in client.get(f"{G}/?q=%25").get_json()] == [b]
-    assert [g["id"] for g in client.get(f"{G}/?q=_").get_json()] == [b]
-    assert {g["id"] for g in client.get(f"{G}/?q=o").get_json()} == {a, b}
+    assert [g["id"] for g in client.get(f"{G}/?q=%25").get_json()["data"]] == [b]
+    assert [g["id"] for g in client.get(f"{G}/?q=_").get_json()["data"]] == [b]
+    assert {g["id"] for g in client.get(f"{G}/?q=o").get_json()["data"]} == {a, b}
+
+
+def test_the_list_comes_in_pages_by_title(client, auth_headers, db, seeded_db):
+    for title in ["delta", "Alpha", "charlie", "Bravo", "echo"]:
+        assert client.post(f"{G}/", json={"title": title}).status_code == 201
+    first = client.get(f"{G}/?pageSize=2").get_json()
+    assert [g["title"] for g in first["data"]] == ["Alpha", "Bravo"]
+    assert (first["total"], first["page"], first["totalPages"]) == (5, 1, 3)
+    last = client.get(f"{G}/?pageSize=2&page=3").get_json()
+    assert [g["title"] for g in last["data"]] == ["echo"]
+    # pageSize is kept between 1 and 100, page at 1 or more.
+    assert client.get(f"{G}/?pageSize=1000").get_json()["pageSize"] == 100
+    assert client.get(f"{G}/?pageSize=0&page=-3").get_json()["page"] == 1

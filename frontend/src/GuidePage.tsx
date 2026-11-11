@@ -36,6 +36,7 @@ import {
   type Guide,
   type GuideInput,
 } from './api'
+import { linkImages } from './markdown'
 import { headings, readingMinutes, type TocEntry } from './toc'
 
 /** Puts the anchors from `toc` on the rendered h1–h3 headings, in order. */
@@ -173,7 +174,11 @@ function GuideEditor({ guide, itemId }: { guide?: Guide; itemId?: number }) {
   const [itemQuery] = useDebouncedValue(itemSearch.trim(), 250)
   const items = useQuery({ queryKey: ['guides', 'items', itemQuery], queryFn: () => pickItems(itemQuery) })
   const kinds = useQuery({ queryKey: ['guides', 'qualification-kinds'], queryFn: qualificationKinds })
-  const rendered = useMemo(() => <MarkdownRenderer content={text} />, [text])
+  const imageLabel = t('guides.image', 'Image')
+  const rendered = useMemo(
+    () => <MarkdownRenderer content={linkImages(text, imageLabel)} />,
+    [text, imageLabel],
+  )
 
   // The item it has now stays a choice even when the search doesn't find it.
   const itemData = useMemo(() => {
@@ -369,7 +374,11 @@ export function GuidePage() {
   const articleRef = useRef<HTMLDivElement>(null)
   // The same element on every render, so the headings are not remounted
   // (and lose their ids) when the active heading changes.
-  const rendered = useMemo(() => <MarkdownRenderer content={content} />, [content])
+  const imageLabel = t('guides.image', 'Image')
+  const rendered = useMemo(
+    () => <MarkdownRenderer content={linkImages(content, imageLabel)} />,
+    [content, imageLabel],
+  )
   useHeadingIds(articleRef, toc)
   const active = useActiveHeading(editing ? [] : toc)
 

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { LoadingSpinner, useAuth } from '@hubra/plugin-sdk'
-import { listGuides } from './api'
+import { itemGuides } from './api'
 
 /**
  * /app/inventory/<id>/guide, where an item's guide was up to Guides 1.x:
@@ -14,7 +14,7 @@ export function ItemGuide() {
   const { hasPermission } = useAuth()
   const { data } = useQuery({
     queryKey: ['guides', 'list', 'item', itemId],
-    queryFn: () => listGuides({ itemId }),
+    queryFn: () => itemGuides(itemId),
     enabled: Number.isFinite(itemId),
   })
   useEffect(() => {

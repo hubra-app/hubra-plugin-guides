@@ -1,6 +1,7 @@
 """Guides blueprint: /api/v1/guides.
 
-GET    /guides/                    ?q=&itemId=  every guide (title, item, preview)
+GET    /guides/                    ?q=&itemId=&page=&pageSize=  a page of guides
+                                   by title: {data, total, page, pageSize, totalPages}
 POST   /guides/                    {title, guide?, guideUrl?, itemId?, qualificationId?}
 GET    /guides/<id>
 PATCH  /guides/<id>                the fields given
@@ -19,7 +20,9 @@ code; without them a guide simply has no item or qualification.
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
-from sqlalchemy import or_, select
+from math import ceil
+
+from sqlalchemy import func, or_, select
 
 from hubra.core.auth.helpers import get_current_member
 from hubra.core.contracts import (
@@ -47,6 +50,8 @@ KINDS = "qualifications.kinds.list"
 HOLDS = "qualifications.member.holds"
 _BATCH = 500  # the most ids the item query takes at once
 MAX_SEARCH = 200
+PAGE_SIZE = 24  # a page of the guide list unless pageSize says otherwise
+MAX_PAGE_SIZE = 100
 
 
 def _ask(name: str, *, actor=SYSTEM, **data) -> list[dict] | None:
@@ -160,11 +165,26 @@ def list_guides():
     item_id = request.args.get("itemId", type=int)
     if item_id is not None:
         stmt = stmt.where(Guide.item_id == item_id)
-    guides = db.session.scalars(stmt).all()
+    page = max(1, request.args.get("page", 1, type=int))
+    size = request.args.get("pageSize", PAGE_SIZE, type=int)
+    size = min(MAX_PAGE_SIZE, max(1, size))
+    total = db.session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    guides = db.session.scalars(
+        stmt.order_by(func.lower(Guide.title), Guide.id)
+        .offset((page - 1) * size)
+        .limit(size)
+    ).all()
     items = _items(g.item_id for g in guides)
     rows = [_summary(g, items.get(g.item_id)) for g in guides]  # type: ignore[arg-type]
-    rows.sort(key=lambda r: (r["title"].casefold(), r["id"]))
-    return jsonify(rows), 200
+    return jsonify(
+        {
+            "data": rows,
+            "total": total,
+            "page": page,
+            "pageSize": size,
+            "totalPages": ceil(total / size) if total else 0,
+        }
+    ), 200
 
 
 @guides_bp.get("/<int:guide_id>")
