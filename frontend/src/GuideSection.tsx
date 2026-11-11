@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { IconBook2, IconChevronRight, IconExternalLink, IconPlus } from '@tabler/icons-react'
 import { useAuth, useT } from '@hubra/plugin-sdk'
-import { listGuides } from './api'
+import { itemGuides } from './api'
 
 /**
  * Shown on an inventory item: the guides for it, each opening its own page,
@@ -15,7 +15,7 @@ export function GuideSection({ itemId }: { itemId: number }) {
   const canWrite = hasPermission('guides.guides.write')
   const { data: guides } = useQuery({
     queryKey: ['guides', 'list', 'item', itemId],
-    queryFn: () => listGuides({ itemId }),
+    queryFn: () => itemGuides(itemId),
   })
 
   if (!guides || (!guides.length && !canWrite)) return null

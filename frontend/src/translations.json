@@ -53,7 +53,8 @@
           "expired": "Yours has expired.",
           "none": "You don't have it yet."
         }
-      }
+      },
+      "image": "Image"
     },
     "shell": {
       "nav": {
@@ -115,7 +116,8 @@
           "expired": "Deine ist abgelaufen.",
           "none": "Du hast sie noch nicht."
         }
-      }
+      },
+      "image": "Bild"
     },
     "shell": {
       "nav": {

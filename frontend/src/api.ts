@@ -39,12 +39,28 @@ export interface Choice {
 
 const G = '/guides'
 
-export const listGuides = (params: { q?: string; itemId?: number } = {}) => {
+/** One page of the guide list, sorted by title. */
+export interface GuidePage {
+  data: GuideSummary[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+export const listGuides = (
+  params: { q?: string; itemId?: number; page?: number; pageSize?: number } = {},
+) => {
   const query = new URLSearchParams()
   if (params.q) query.set('q', params.q)
   if (params.itemId !== undefined) query.set('itemId', String(params.itemId))
-  return apiFetch<GuideSummary[]>(`${G}/?${query}`)
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  return apiFetch<GuidePage>(`${G}/?${query}`)
 }
+/** The guides of one item (an item has a handful, never a page full). */
+export const itemGuides = async (itemId: number) =>
+  (await listGuides({ itemId, pageSize: 100 })).data
 export const getGuide = (id: number) => apiFetch<Guide>(`${G}/${id}`)
 export const createGuide = (input: GuideInput) =>
   apiFetch<Guide>(`${G}/`, { method: 'POST', body: JSON.stringify(input) })
