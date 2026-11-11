@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.1
+
+Security fixes from the plugin audit.
+
+- The item picker and linking a guide to an item ask Inventory as the
+  writer, so they show and accept only items the writer may read in
+  Inventory (before, anyone with *Write guides* could list the whole
+  inventory). A guide keeps showing the item it is linked to.
+- Search takes `%` and `_` literally and at most 200 characters.
+- A request body that isn't a JSON object is a 400, not a 500.
+
 ## 2.0.0
 
 Guides are how-tos now, for an item or on their own, and qualifications are

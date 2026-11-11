@@ -22,7 +22,14 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import or_, select
 
 from hubra.core.auth.helpers import get_current_member
-from hubra.core.contracts import SYSTEM, ActionFailed, ActionUnavailable, query
+from hubra.core.contracts import (
+    CURRENT,
+    SYSTEM,
+    ActionFailed,
+    ActionForbidden,
+    ActionUnavailable,
+    query,
+)
 from hubra.core.errors import api_error, raise_error
 from hubra.core.extensions import db
 from hubra.core.permissions import permission_required
@@ -39,25 +46,30 @@ ITEMS_LIST = "inventory.items.list"
 KINDS = "qualifications.kinds.list"
 HOLDS = "qualifications.member.holds"
 _BATCH = 500  # the most ids the item query takes at once
+MAX_SEARCH = 200
 
 
-def _ask(name: str, **data) -> list[dict] | None:
-    """Ask another plugin; ``None`` when it isn't there or is switched off.
+def _ask(name: str, *, actor=SYSTEM, **data) -> list[dict] | None:
+    """Ask another plugin; ``None`` when it isn't there, is switched off or
+    (with ``actor=CURRENT``) the signed-in member may not ask it.
 
-    Guides checks its own rights, so it asks as the system.
+    Showing a guide asks as the system: Guides checks its own rights, and
+    the reader sees only the item the guide's writer linked. Picking an item
+    asks as the writer, so the picker never lists more of the inventory than
+    the writer may read there.
     """
     try:
-        return query(name, actor=SYSTEM, **data)
-    except (ActionUnavailable, ActionFailed):
+        return query(name, actor=actor, **data)
+    except (ActionUnavailable, ActionFailed, ActionForbidden):
         return None
 
 
-def _items(ids) -> dict[int, dict]:
+def _items(ids, *, actor=SYSTEM) -> dict[int, dict]:
     """The live inventory items with these ids, by id."""
     ids = [i for i in dict.fromkeys(ids) if i]
     out: dict[int, dict] = {}
     for start in range(0, len(ids), _BATCH):
-        rows = _ask(ITEMS_GET, ids=ids[start : start + _BATCH]) or []
+        rows = _ask(ITEMS_GET, actor=actor, ids=ids[start : start + _BATCH]) or []
         out.update({row["id"]: row for row in rows})
     return out
 
@@ -109,6 +121,22 @@ def _full(g: Guide) -> dict:
     }
 
 
+def _like(text: str) -> str:
+    """*text* as a LIKE pattern that matches it anywhere, literally."""
+    text = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{text}%"
+
+
+def _json_body() -> dict:
+    """The request's JSON object; anything else is a 400."""
+    body = request.get_json(silent=True)
+    if body is None:
+        return {}
+    if not isinstance(body, dict):
+        raise_error(400, "VALIDATION_ERROR", "expected a JSON object")
+    return body
+
+
 def _get(guide_id: int) -> Guide:
     g = db.session.get(Guide, guide_id)
     if g is None:
@@ -120,10 +148,15 @@ def _get(guide_id: int) -> Guide:
 @permission_required("guides", "read", "Read guides")
 def list_guides():
     stmt = select(Guide)
-    q = (request.args.get("q") or "").strip()
+    q = (request.args.get("q") or "").strip()[:MAX_SEARCH]
     if q:
-        like = f"%{q}%"
-        stmt = stmt.where(or_(Guide.title.ilike(like), Guide.body.ilike(like)))
+        like = _like(q)
+        stmt = stmt.where(
+            or_(
+                Guide.title.ilike(like, escape="\\"),
+                Guide.body.ilike(like, escape="\\"),
+            )
+        )
     item_id = request.args.get("itemId", type=int)
     if item_id is not None:
         stmt = stmt.where(Guide.item_id == item_id)
@@ -166,10 +199,16 @@ def _read(g: Guide, body: dict) -> str | None:
         g.url = (url or "").strip() or None
     if "itemId" in body:
         item_id = body.get("itemId")
-        if item_id is not None and (
-            not isinstance(item_id, int)
-            or isinstance(item_id, bool)
-            or item_id not in _items([item_id])
+        # Keeping the item it has needs no check (its writer may not see it).
+        if (
+            item_id is not None
+            and item_id != g.item_id
+            and (
+                not isinstance(item_id, int)
+                or isinstance(item_id, bool)
+                # The writer must be able to see the item in Inventory.
+                or item_id not in _items([item_id], actor=CURRENT)
+            )
         ):
             return "itemId must be an inventory item"
         g.item_id = item_id
@@ -189,7 +228,7 @@ def _read(g: Guide, body: dict) -> str | None:
 @guides_bp.post("/")
 @permission_required("guides", "write", "Write guides")
 def create_guide():
-    body = request.get_json(silent=True) or {}
+    body = _json_body()
     g = Guide()
     error = _read(g, body)
     if error:
@@ -207,7 +246,7 @@ def create_guide():
 @permission_required("guides", "write", "Write guides")
 def update_guide(guide_id: int):
     g = _get(guide_id)
-    error = _read(g, request.get_json(silent=True) or {})
+    error = _read(g, _json_body())
     if error:
         db.session.rollback()
         return api_error("VALIDATION_ERROR", error, 400)
@@ -232,8 +271,8 @@ def delete_guide(guide_id: int):
 @permission_required("guides", "write", "Write guides")
 def pick_items():
     """Items a guide can belong to (empty without Inventory)."""
-    q = (request.args.get("q") or "").strip()
-    rows = _ask(ITEMS_LIST, search=q or None, limit=50) or []
+    q = (request.args.get("q") or "").strip()[:MAX_SEARCH]
+    rows = _ask(ITEMS_LIST, actor=CURRENT, search=q or None, limit=50) or []
     return jsonify([{"id": r["id"], "name": r["name"]} for r in rows]), 200
 
 

@@ -25,7 +25,7 @@ def others(monkeypatch):
     """Inventory with the item "Laser cutter" (5) and Qualifications with the
     kind "Laser induction" (7), which the reader holds until soon."""
 
-    def ask(name, **data):
+    def ask(name, actor=None, **data):
         if name == routes.ITEMS_GET:
             return [
                 {"id": 5, "name": "Laser cutter", "instruction_required": True}
@@ -123,3 +123,54 @@ def test_reading_and_writing_take_their_rights(client, app, db, seeded_db):
     _login(client, "reader@test.ch")
     assert client.get(f"{G}/").status_code == 200
     assert client.post(f"{G}/", json={"title": "x"}).status_code == 403
+
+
+def test_picking_an_item_takes_the_writers_inventory_rights(
+    client, auth_headers, db, seeded_db, monkeypatch
+):
+    """Inventory refuses the writer (no right to read items there): the
+    picker lists nothing and no item can be linked, but a guide already
+    linked keeps showing its item and can still be edited."""
+    from hubra.core.contracts import CURRENT
+
+    def ask(name, actor=None, **data):
+        if name in (routes.ITEMS_GET, routes.ITEMS_LIST):
+            if actor is CURRENT:
+                return None  # what _ask gives for ActionForbidden
+            return [{"id": 5, "name": "Laser cutter", "instruction_required": True}]
+        return None
+
+    monkeypatch.setattr(routes, "_ask", ask)
+    assert client.get(f"{G}/items").get_json() == []
+    assert client.post(f"{G}/", json={"title": "x", "itemId": 5}).status_code == 400
+    g = Guide(title="Laser", item_id=5)
+    db.session.add(g)
+    db.session.commit()
+    got = client.get(f"{G}/{g.id}").get_json()
+    assert got["itemName"] == "Laser cutter"
+    resp = client.patch(f"{G}/{g.id}", json={"title": "Laser!", "itemId": 5})
+    assert resp.status_code == 200, resp.get_json()
+
+
+def test_ask_refused_is_none(monkeypatch):
+    from hubra.core.contracts import ActionForbidden
+
+    def refuse(name, **kw):
+        raise ActionForbidden("no")
+
+    monkeypatch.setattr(routes, "query", refuse)
+    assert routes._ask(routes.ITEMS_LIST) is None
+
+
+def test_body_must_be_an_object(client, auth_headers, db, seeded_db):
+    assert client.post(f"{G}/", json=["x"]).status_code == 400
+    gid = client.post(f"{G}/", json={"title": "x"}).get_json()["id"]
+    assert client.patch(f"{G}/{gid}", json="x").status_code == 400
+
+
+def test_search_takes_wildcards_literally(client, auth_headers, db, seeded_db):
+    a = client.post(f"{G}/", json={"title": "Lock up"}).get_json()["id"]
+    b = client.post(f"{G}/", json={"title": "100% safe_mode"}).get_json()["id"]
+    assert [g["id"] for g in client.get(f"{G}/?q=%25").get_json()] == [b]
+    assert [g["id"] for g in client.get(f"{G}/?q=_").get_json()] == [b]
+    assert {g["id"] for g in client.get(f"{G}/?q=o").get_json()} == {a, b}
